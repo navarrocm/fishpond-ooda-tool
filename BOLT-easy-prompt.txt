@@ -1,0 +1,17 @@
+I am uploading a vanilla HTML/CSS/JS PWA project. DO NOT use React, TypeScript, or Vite. DO NOT override my files. Use the files I upload as-is.
+
+Uploading these files:
+
+1. /index.html - Main HTML page
+2. /manifest.json - PWA manifest
+3. /sw.js - Service worker
+4. /css/style.css - All styles
+5. /js/utils.js - Utilities
+6. /js/db.js - IndexedDB operations
+7. /js/ooda.js - OODA engine
+8. /js/ui.js - UI rendering
+9. /js/main.js - App entry point
+
+These are complete files. Do not modify them. Just place them in the correct paths and serve them with a static server.
+
+Start with index.html.

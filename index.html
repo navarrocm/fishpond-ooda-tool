@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Fishpond OODA Tool</title>
+  
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#1a5f7a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <meta name="description" content="Smart decision support for fishpond operators">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header id="app-header">
+      <h1>🐟 Fishpond OODA</h1>
+      <span id="online-status" class="online">● Online</span>
+    </header>
+
+    <!-- Tab Navigation -->
+    <nav id="tab-nav">
+      <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+      <button class="tab-btn" data-tab="log">📝 Log Entry</button>
+      <button class="tab-btn" data-tab="harvest">🌾 Harvest</button>
+      <button class="tab-btn" data-tab="tide">🌊 Tide</button>
+      <button class="tab-btn" data-tab="analysis">📈 Analysis</button>
+      <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+    </nav>
+
+    <!-- Tab Content -->
+    <main id="tab-content">
+      
+      <!-- ===== DASHBOARD ===== -->
+      <section id="dashboard" class="tab-panel active">
+        <div class="panel-header">
+          <h2>Your Ponds</h2>
+          <button id="add-pond-btn" class="primary-btn">+ Add Pond</button>
+        </div>
+        <div id="pond-list" class="pond-grid"></div>
+        <div id="pond-detail" style="display:none;"></div>
+      </section>
+
+      <!-- ===== LOG ENTRY ===== -->
+      <section id="log" class="tab-panel">
+        <div class="panel-header">
+          <h2>Daily Log Entry</h2>
+          <span id="log-pond-name">Select a pond first</span>
+        </div>
+        <form id="log-form" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-pond">Pond *</label>
+              <select id="log-pond" required></select>
+            </div>
+            <div class="form-group">
+              <label for="log-date">Date *</label>
+              <input type="date" id="log-date" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-temp">Temperature (°C) *</label>
+              <input type="number" id="log-temp" step="0.1" required placeholder="27-30">
+            </div>
+            <div class="form-group">
+              <label for="log-ph">pH *</label>
+              <input type="number" id="log-ph" step="0.1" required placeholder="7.5-8.5">
+            </div>
+            <div class="form-group">
+              <label for="log-salinity">Salinity (ppt) *</label>
+              <input type="number" id="log-salinity" step="0.1" required placeholder="20-30">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-do">Dissolved Oxygen (ppm) *</label>
+              <input type="number" id="log-do" step="0.1" required placeholder=">5">
+            </div>
+            <div class="form-group">
+              <label for="log-ammonia">Ammonia (ppm) *</label>
+              <input type="number" id="log-ammonia" step="0.01" required placeholder="<0.5">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-feed-type">Feed Type</label>
+              <select id="log-feed-type">
+                <option value="Starter">Starter</option>
+                <option value="Grower" selected>Grower</option>
+                <option value="Finisher">Finisher</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="log-feed-amount">Feed Amount (kg) *</label>
+              <input type="number" id="log-feed-amount" step="0.1" required>
+            </div>
+            <div class="form-group">
+              <label for="log-feed-cost">Feed Cost (₱) *</label>
+              <input type="number" id="log-feed-cost" step="1" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-mortality">Mortality (count)</label>
+              <input type="number" id="log-mortality" value="0" min="0">
+            </div>
+            <div class="form-group">
+              <label for="log-cause">Cause (if any)</label>
+              <input type="text" id="log-cause" placeholder="e.g., disease, predation">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-weather">Weather</label>
+              <select id="log-weather">
+                <option value="Sunny">☀️ Sunny</option>
+                <option value="Rainy">🌧️ Rainy</option>
+                <option value="Cloudy">⛅ Cloudy</option>
+                <option value="Stormy">⛈️ Stormy</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="log-weight">Sample Weight (g, optional)</label>
+              <input type="number" id="log-weight" step="0.1" placeholder="e.g., 150">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="log-notes">Notes (optional)</label>
+            <input type="text" id="log-notes" placeholder="Any observations...">
+          </div>
+          <button type="submit" class="primary-btn">💾 Save Log</button>
+        </form>
+        <div id="log-message" class="message" style="display:none;"></div>
+      </section>
+
+      <!-- ===== HARVEST ENTRY ===== -->
+      <section id="harvest" class="tab-panel">
+        <div class="panel-header">
+          <h2>🌾 Harvest Entry</h2>
+          <span id="harvest-pond-name">Select a pond first</span>
+        </div>
+        <form id="harvest-form" novalidate>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="harvest-pond">Pond *</label>
+              <select id="harvest-pond" required></select>
+            </div>
+            <div class="form-group">
+              <label for="harvest-date">Harvest Date *</label>
+              <input type="date" id="harvest-date" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="harvest-weight">Total Weight Harvested (kg) *</label>
+              <input type="number" id="harvest-weight" step="0.1" required placeholder="e.g., 1200">
+            </div>
+            <div class="form-group">
+              <label for="harvest-price">Price Received (₱/kg) *</label>
+              <input type="number" id="harvest-price" step="0.01" required placeholder="e.g., 140">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="harvest-revenue">Total Revenue (₱) *</label>
+              <input type="number" id="harvest-revenue" step="1" required placeholder="Auto-calculated or manual">
+            </div>
+            <div class="form-group">
+              <label for="harvest-buyer">Buyer</label>
+              <input type="text" id="harvest-buyer" placeholder="e.g., Trader A">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="harvest-notes">Notes (optional)</label>
+            <input type="text" id="harvest-notes" placeholder="Quality, issues, etc.">
+          </div>
+          <button type="submit" class="primary-btn">💾 Save Harvest Record</button>
+        </form>
+        <div id="harvest-list" style="margin-top:16px;"></div>
+        <div id="harvest-message" class="message" style="display:none;"></div>
+      </section>
+
+      <!-- ===== TIDE ===== -->
+      <section id="tide" class="tab-panel">
+        <div class="panel-header">
+          <h2>🌊 NAMRIA Tide Predictions</h2>
+        </div>
+        <div class="tide-container">
+          <div class="tide-iframe-wrapper">
+            <iframe 
+              src="https://www.namria.gov.ph/tides/pwa/" 
+              title="NAMRIA Tide Predictions"
+              allow="geolocation"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-forms"
+            ></iframe>
+          </div>
+          <div class="tide-manual">
+            <h3>Manual Tide Entry</h3>
+            <form id="tide-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Date *</label>
+                  <input type="date" id="tide-date" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>High Tide Level (m)</label>
+                  <input type="number" id="tide-high" step="0.01">
+                </div>
+                <div class="form-group">
+                  <label>High Tide Time</label>
+                  <input type="time" id="tide-high-time">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Low Tide Level (m)</label>
+                  <input type="number" id="tide-low" step="0.01">
+                </div>
+                <div class="form-group">
+                  <label>Low Tide Time</label>
+                  <input type="time" id="tide-low-time">
+                </div>
+              </div>
+              <button type="submit" class="primary-btn">💾 Save Tide Data</button>
+            </form>
+            <div id="tide-message" class="message" style="display:none;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== ANALYSIS ===== -->
+      <section id="analysis" class="tab-panel">
+        <div class="panel-header">
+          <h2>📈 Analysis</h2>
+          <select id="analysis-pond">
+            <option value="">Select a pond</option>
+          </select>
+        </div>
+        <div id="analysis-content">
+          <p style="color:var(--text-light);text-align:center;padding:40px 0;">Select a pond to analyze.</p>
+        </div>
+      </section>
+
+      <!-- ===== SETTINGS ===== -->
+      <section id="settings" class="tab-panel">
+        <div class="panel-header">
+          <h2>⚙️ Settings</h2>
+        </div>
+        <div class="settings-section">
+          <h3>Theme</h3>
+          <div class="form-row">
+            <button id="theme-light" class="secondary-btn">☀️ Light</button>
+            <button id="theme-dark" class="secondary-btn">🌙 Dark</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Data Management</h3>
+          <div class="form-row">
+            <button id="export-data" class="secondary-btn">📤 Export Data (JSON)</button>
+            <button id="import-data" class="secondary-btn">📥 Import Data (JSON)</button>
+            <input type="file" id="import-file" accept=".json" style="display:none;">
+          </div>
+          <button id="clear-data" class="danger-btn">🗑️ Clear All Data</button>
+        </div>
+        <div class="settings-section">
+          <h3>About</h3>
+          <p><strong>Fishpond OODA Tool v2.0</strong></p>
+          <p>Built for fishpond operators in the Philippines.</p>
+          <p>Data stored locally in your browser.</p>
+          <p style="font-size:0.8rem;color:var(--text-light);margin-top:8px;">
+            Data is yours. No tracking. No cloud uploads unless you choose to.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>
