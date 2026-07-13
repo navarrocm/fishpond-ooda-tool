@@ -5,29 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
   
-  <!-- BASE URL FOR GITHUB PAGES -->
+  <!-- 🔥 HARDCODED PATHS FOR GITHUB PAGES -->
   <base href="/fishpond-ooda-tool/">
   
-  <!-- PWA Meta Tags -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a5f7a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="description" content="Smart decision support for fishpond operators">
   
-  <!-- Styles -->
-  <link rel="stylesheet" href="/css/style.css">
+  <!-- RELATIVE PATHS (no leading slash) -->
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="app">
-    <!-- Header -->
     <header id="app-header">
       <h1>🐟 Fishpond OODA</h1>
       <span id="online-status" class="online">● Online</span>
     </header>
 
-    <!-- Tab Navigation -->
     <nav id="tab-nav">
       <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
       <button class="tab-btn" data-tab="log">📝 Log Entry</button>
@@ -37,10 +34,8 @@
       <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
     </nav>
 
-    <!-- Tab Content -->
     <main id="tab-content">
-      
-      <!-- ===== DASHBOARD ===== -->
+      <!-- DASHBOARD -->
       <section id="dashboard" class="tab-panel active">
         <div class="panel-header">
           <h2>Your Ponds</h2>
@@ -50,7 +45,7 @@
         <div id="pond-detail" style="display:none;"></div>
       </section>
 
-      <!-- ===== LOG ENTRY ===== -->
+      <!-- LOG ENTRY -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
           <h2>Daily Log Entry</h2>
@@ -143,7 +138,7 @@
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== HARVEST ENTRY ===== -->
+      <!-- HARVEST ENTRY -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
           <h2>🌾 Harvest Entry</h2>
@@ -173,7 +168,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="harvest-revenue">Total Revenue (₱) *</label>
-              <input type="number" id="harvest-revenue" step="1" required placeholder="Auto-calculated or manual">
+              <input type="number" id="harvest-revenue" step="1" required placeholder="Auto-calculated">
             </div>
             <div class="form-group">
               <label for="harvest-buyer">Buyer</label>
@@ -190,7 +185,7 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== TIDE ===== -->
+      <!-- TIDE -->
       <section id="tide" class="tab-panel">
         <div class="panel-header">
           <h2>🌊 NAMRIA Tide Predictions</h2>
@@ -241,7 +236,7 @@
         </div>
       </section>
 
-      <!-- ===== ANALYSIS ===== -->
+      <!-- ANALYSIS -->
       <section id="analysis" class="tab-panel">
         <div class="panel-header">
           <h2>📈 Analysis</h2>
@@ -254,7 +249,7 @@
         </div>
       </section>
 
-      <!-- ===== SETTINGS ===== -->
+      <!-- SETTINGS -->
       <section id="settings" class="tab-panel">
         <div class="panel-header">
           <h2>⚙️ Settings</h2>
@@ -296,6 +291,7 @@
     </div>
   </div>
 
-  <script type="module" src="/js/main.js"></script>
+  <!-- RELATIVE PATH (no leading slash) -->
+  <script type="module" src="js/main.js"></script>
 </body>
 </html>
