@@ -189,42 +189,36 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== TIDE (FIXED - No Dead Iframe) ===== -->
+      <!-- ===== TIDE (FIXED - No Iframe) ===== -->
       <section id="tide" class="tab-panel">
         <div class="panel-header">
           <h2>🌊 Tide Predictions</h2>
         </div>
         
-        <!-- REPLACEMENT: Store Badges + Link -->
-        <div class="tide-card" style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid var(--primary);">
-          <h3 style="margin-bottom:8px;">📱 Get Official Tide Data</h3>
+        <!-- NAMRIA LINK CARD (Opens in new window) -->
+        <div style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid var(--primary);">
+          <h3 style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+            <span>📡</span> Get Official Tide Data
+          </h3>
           <p style="color:var(--text-light);margin-bottom:12px;">
-            NAMRIA distributes tide predictions through their official mobile app and printed tables.
-            Download the <strong>PH TIDES</strong> app for accurate daily tide levels:
+            NAMRIA provides official tide predictions for the Philippines. 
+            Click the button below to check today's tide levels in a new window.
           </p>
-          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
-            <a href="https://play.google.com/store/apps/details?id=com.namria.phtides" 
-               target="_blank" 
-               style="display:inline-block;padding:8px 16px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
-              📱 Google Play
-            </a>
-            <a href="https://apps.apple.com/ph/app/ph-tides/" 
-               target="_blank" 
-               style="display:inline-block;padding:8px 16px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
-              📱 App Store
-            </a>
-            <span style="display:inline-block;padding:8px 16px;background:var(--border);color:var(--text);border-radius:8px;">
-              📄 Or use printed NAMRIA tables
-            </span>
-          </div>
-          <p style="font-size:0.85rem;color:var(--text-muted);">
+          <a href="https://www.namria.gov.ph/#gsc.tab=0" 
+             target="_blank" 
+             rel="noopener noreferrer"
+             style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;transition:var(--transition);">
+            🌊 Open NAMRIA Tide Page
+            <span style="font-size:0.8rem;opacity:0.8;">↗</span>
+          </a>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-top:12px;">
             After checking tide levels, log them manually below. This helps your pond's water management history.
           </p>
         </div>
 
-        <!-- Manual Tide Entry (Already Built) -->
-        <div class="tide-manual">
-          <h3>Manual Tide Entry</h3>
+        <!-- Manual Tide Entry -->
+        <div class="tide-manual" style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);">
+          <h3 style="margin-bottom:12px;">Manual Tide Entry</h3>
           <form id="tide-form">
             <div class="form-row">
               <div class="form-group">
