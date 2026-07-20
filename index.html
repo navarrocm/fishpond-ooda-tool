@@ -5,18 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
   
-  <!-- BASE URL FOR GITHUB PAGES -->
-  <base href="/fishpond-ooda-tool/">
-  
-  <link rel="manifest" href="manifest.json">
+  <!-- ABSOLUTE PATHS FOR GITHUB PAGES -->
+  <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
   <meta name="theme-color" content="#1a5f7a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="/fishpond-ooda-tool/icons/icon-192.png">
   <meta name="description" content="Smart decision support for fishpond operators">
   
-  <!-- RELATIVE PATHS -->
-  <link rel="stylesheet" href="css/style.css">
+  <!-- ABSOLUTE CSS PATH -->
+  <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
 </head>
 <body>
   <div id="app">
@@ -189,17 +187,16 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== TIDE (INTEGRATED FROM WORKING tide.html) ===== -->
+      <!-- ===== TIDE (WORKING FROM tide.html) ===== -->
       <section id="tide" class="tab-panel">
         <div style="max-width:800px;margin:0 auto;padding:0 12px;">
-          <!-- NAMRIA LINK CARD - PROVEN WORKING -->
+          <!-- NAMRIA LINK CARD -->
           <div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px;border-left:6px solid #1a5f7a;">
             <h2 style="font-size:1.4rem;margin-bottom:12px;color:#1a5f7a;display:flex;align-items:center;gap:10px;">
               <span>📡</span> Get Official Tide Data
             </h2>
             <p style="color:#555;margin-bottom:16px;">NAMRIA provides official tide predictions for the Philippines. Click the button below to check today's tide levels.</p>
             
-            <!-- THE BUTTON - PROVEN WORKING -->
             <a href="https://www.namria.gov.ph/#gsc.tab=0" 
                target="_blank" 
                rel="noopener noreferrer" 
@@ -214,7 +211,7 @@
             </p>
           </div>
 
-          <!-- MANUAL TIDE ENTRY - PROVEN WORKING -->
+          <!-- MANUAL TIDE ENTRY -->
           <div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;border-left:6px solid #2ecc71;">
             <h2 style="font-size:1.4rem;margin-bottom:12px;color:#2ecc71;display:flex;align-items:center;gap:10px;">
               <span>📝</span> Manual Tide Entry
@@ -309,7 +306,7 @@
     </div>
   </div>
 
-  <!-- ABSOLUTE PATH FOR GITHUB PAGES -->
+  <!-- ABSOLUTE PATH FOR JAVASCRIPT -->
   <script type="module" src="/fishpond-ooda-tool/js/main.js"></script>
 </body>
 </html>
