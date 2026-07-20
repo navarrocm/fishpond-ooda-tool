@@ -7,7 +7,7 @@ import { getPondStatus, generateRecommendations, getPhase } from './ooda.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 
 // ============================================================
-// EXPORT ALL FUNCTIONS (VERIFIED)
+// TAB NAVIGATION
 // ============================================================
 
 export function showTab(tabId) {
@@ -19,6 +19,10 @@ export function showTab(tabId) {
   if (btn) btn.classList.add('active');
 }
 
+// ============================================================
+// MESSAGES
+// ============================================================
+
 export function showMessage(target, message, type = 'success') {
   const el = document.getElementById(target);
   if (!el) return;
@@ -28,6 +32,10 @@ export function showMessage(target, message, type = 'success') {
     el.className = 'message';
   }, 5000);
 }
+
+// ============================================================
+// POND LIST
+// ============================================================
 
 export async function renderPondList() {
   const container = document.getElementById('pond-list');
@@ -66,6 +74,10 @@ export async function renderPondList() {
     });
   });
 }
+
+// ============================================================
+// POND DETAIL
+// ============================================================
 
 export async function showPondDetail(pondId) {
   const allPonds = await getAll('ponds');
@@ -126,6 +138,10 @@ export async function showPondDetail(pondId) {
   `;
 }
 
+// ============================================================
+// ADD POND MODAL
+// ============================================================
+
 export function showAddPondModal() {
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
@@ -176,6 +192,10 @@ export function showAddPondModal() {
   });
 }
 
+// ============================================================
+// UPDATE SELECTORS
+// ============================================================
+
 export async function updateSelectors() {
   const ponds = await getAll('ponds');
   const selectors = ['log-pond', 'harvest-pond', 'analysis-pond', 'decide-pond'];
@@ -205,7 +225,10 @@ export async function updateSelectors() {
   }
 }
 
-// ---- THIS IS THE FUNCTION THAT WAS MISSING ----
+// ============================================================
+// HARVEST LIST - THIS WAS THE MISSING EXPORT
+// ============================================================
+
 export async function renderHarvestList(pondId) {
   const container = document.getElementById('harvest-list');
   if (!container) return;
@@ -235,6 +258,10 @@ export async function renderHarvestList(pondId) {
     </div>
   `).join('');
 }
+
+// ============================================================
+// ANALYSIS
+// ============================================================
 
 export async function renderAnalysis(pondId) {
   const container = document.getElementById('analysis-content');
@@ -284,7 +311,10 @@ export async function renderAnalysis(pondId) {
   `;
 }
 
-// ---- NEW: Render Decide ----
+// ============================================================
+// DECIDE (Decision Support)
+// ============================================================
+
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
