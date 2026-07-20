@@ -18,6 +18,14 @@ import { escapeHtml, formatNumber, formatCurrency, validateNumber, validateInt }
 async function init() {
   await openDB();
   
+  // --- LOAD THEME FROM LOCALSTORAGE ---
+  const savedTheme = localStorage.getItem('theme');
+  if (savedTheme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+  
   // --- DATA PERSISTENCE ---
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(persistent => {
@@ -98,238 +106,6 @@ window.deleteHarvest = async function(harvestId) {
   await renderPondList();
   showMessage('harvest-message', 'Harvest record deleted.', 'info');
 };
-
-// ---- EVENT LISTENERS ----
-function setupEventListeners() {
-  // --- TAB NAVIGATION ---
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const tab = btn.dataset.tab;
-      showTab(tab);
-      if (tab === 'dashboard') await renderPondList();
-      if (tab === 'analysis') {
-        const pondId = document.getElementById('analysis-pond')?.value;
-        await renderAnalysis(pondId);
-        if (pondId) {
-          const allPonds = await getAll('ponds');
-          const pond = allPonds.find(p => p.id === pondId);
-          if (pond) {
-            const logs = await getByIndex('dailyLogs', 'pondId', pondId);
-            const harvests = await getByIndex('harvests', 'pondId', pondId);
-            renderCharts(pond, logs, harvests);
-            renderTrendAnalysis(pond, logs, harvests);
-          }
-        }
-      }
-      if (tab === 'log') await updateSelectors();
-      if (tab === 'harvest') {
-        await updateSelectors();
-        const pondId = document.getElementById('harvest-pond')?.value;
-        await renderHarvestList(pondId);
-      }
-    });
-  });
-
-  // --- ADD POND ---
-  document.getElementById('add-pond-btn')?.addEventListener('click', showAddPondModal);
-
-  // --- MODAL ---
-  document.querySelector('.modal-close')?.addEventListener('click', () => {
-    document.getElementById('modal').style.display = 'none';
-  });
-  document.getElementById('modal')?.addEventListener('click', (e) => {
-    if (e.target === e.currentTarget) document.getElementById('modal').style.display = 'none';
-  });
-
-  // --- LOG FORM ---
-  document.getElementById('log-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pondId = document.getElementById('log-pond').value;
-    if (!pondId) { showMessage('log-message', 'Please select a pond first.', 'error'); return; }
-    
-    const temp = validateNumber(document.getElementById('log-temp').value);
-    const ph = validateNumber(document.getElementById('log-ph').value);
-    const salinity = validateNumber(document.getElementById('log-salinity').value);
-    const doVal = validateNumber(document.getElementById('log-do').value);
-    const ammonia = validateNumber(document.getElementById('log-ammonia').value);
-    const feedAmount = validateNumber(document.getElementById('log-feed-amount').value, 0);
-    const feedCost = validateNumber(document.getElementById('log-feed-cost').value, 0);
-    const mortality = validateInt(document.getElementById('log-mortality').value, 0);
-    const weight = validateNumber(document.getElementById('log-weight').value, 0);
-    
-    if (temp === null || ph === null || salinity === null || doVal === null || ammonia === null) {
-      showMessage('log-message', 'Please fill in all water quality fields with valid numbers.', 'error');
-      return;
-    }
-
-    const log = {
-      pondId, date: document.getElementById('log-date').value,
-      temp, ph, salinity, do: doVal, ammonia,
-      feedType: document.getElementById('log-feed-type').value,
-      feedAmount, feedCost, mortality,
-      cause: document.getElementById('log-cause').value.trim() || '',
-      weather: document.getElementById('log-weather').value,
-      weight, notes: document.getElementById('log-notes').value.trim() || '',
-      createdAt: new Date().toISOString()
-    };
-
-    await add('dailyLogs', log);
-    showMessage('log-message', '✅ Log saved successfully!', 'success');
-    document.getElementById('log-form').reset();
-    document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
-    await updateSelectors();
-    await renderPondList();
-  });
-
-  // --- HARVEST FORM ---
-  document.getElementById('harvest-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const pondId = document.getElementById('harvest-pond').value;
-    if (!pondId) { showMessage('harvest-message', 'Please select a pond first.', 'error'); return; }
-    
-    const weight = validateNumber(document.getElementById('harvest-weight').value);
-    const price = validateNumber(document.getElementById('harvest-price').value);
-    let revenue = validateNumber(document.getElementById('harvest-revenue').value);
-    
-    if (weight === null || price === null || weight <= 0 || price <= 0) {
-      showMessage('harvest-message', 'Please enter valid weight and price.', 'error');
-      return;
-    }
-    
-    if (revenue === null || revenue <= 0) {
-      revenue = Math.round(weight * price);
-      document.getElementById('harvest-revenue').value = revenue;
-    }
-
-    const harvest = {
-      pondId, date: document.getElementById('harvest-date').value,
-      weight, price, revenue,
-      buyer: document.getElementById('harvest-buyer').value.trim() || '',
-      notes: document.getElementById('harvest-notes').value.trim() || '',
-      createdAt: new Date().toISOString()
-    };
-
-    await add('harvests', harvest);
-    const pond = (await getAll('ponds')).find(p => p.id === pondId);
-    if (pond) { pond.harvested = true; await update('ponds', pond); }
-    
-    showMessage('harvest-message', '✅ Harvest record saved!', 'success');
-    document.getElementById('harvest-form').reset();
-    document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('harvest-revenue').value = '';
-    await renderHarvestList(pondId);
-    await renderPondList();
-    await updateSelectors();
-  });
-
-  // --- HARVEST AUTO-CALC ---
-  document.getElementById('harvest-weight')?.addEventListener('input', calcRevenue);
-  document.getElementById('harvest-price')?.addEventListener('input', calcRevenue);
-  function calcRevenue() {
-    const weight = validateNumber(document.getElementById('harvest-weight').value);
-    const price = validateNumber(document.getElementById('harvest-price').value);
-    if (weight !== null && price !== null && weight > 0 && price > 0) {
-      document.getElementById('harvest-revenue').value = Math.round(weight * price);
-    }
-  }
-
-  // --- HARVEST POND SELECTOR ---
-  document.getElementById('harvest-pond')?.addEventListener('change', async (e) => {
-    await renderHarvestList(e.target.value);
-  });
-
-  // --- TIDE FORM ---
-  document.getElementById('tide-form')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const tide = {
-      date: document.getElementById('tide-date').value,
-      highLevel: validateNumber(document.getElementById('tide-high').value, 0),
-      highTime: document.getElementById('tide-high-time').value || '',
-      lowLevel: validateNumber(document.getElementById('tide-low').value, 0),
-      lowTime: document.getElementById('tide-low-time').value || '',
-      createdAt: new Date().toISOString()
-    };
-    await add('tideLogs', tide);
-    showMessage('tide-message', '✅ Tide data saved!', 'success');
-  });
-
-  // --- ANALYSIS POND SELECTOR ---
-  document.getElementById('analysis-pond')?.addEventListener('change', async (e) => {
-    const pondId = e.target.value;
-    await renderAnalysis(pondId);
-    if (pondId) {
-      const allPonds = await getAll('ponds');
-      const pond = allPonds.find(p => p.id === pondId);
-      if (pond) {
-        const logs = await getByIndex('dailyLogs', 'pondId', pondId);
-        const harvests = await getByIndex('harvests', 'pondId', pondId);
-        renderCharts(pond, logs, harvests);
-        renderTrendAnalysis(pond, logs, harvests);
-        renderBreakEvenSensitivity(pond, logs, harvests);
-        renderCrossCycleComparison(pond, logs, harvests);
-      }
-    }
-  });
-
-  // --- THEME ---
-  document.getElementById('theme-light')?.addEventListener('click', () => {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('theme', 'light');
-  });
-  document.getElementById('theme-dark')?.addEventListener('click', () => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    localStorage.setItem('theme', 'dark');
-  });
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
-
-  // --- EXPORT DATA ---
-  document.getElementById('export-data')?.addEventListener('click', async () => {
-    const data = await exportAllData();
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fishpond-data-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    localStorage.setItem('lastExportDate', new Date().toISOString());
-    showMessage('log-message', '✅ Data exported! Last export date saved.', 'success');
-  });
-
-  // --- IMPORT DATA ---
-  document.getElementById('import-data')?.addEventListener('click', () => {
-    document.getElementById('import-file').click();
-  });
-  document.getElementById('import-file')?.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text);
-      await importAllData(data);
-      await renderPondList();
-      await updateSelectors();
-      showMessage('log-message', '✅ Data imported successfully!', 'success');
-    } catch (err) {
-      showMessage('log-message', '❌ Invalid file format.', 'error');
-    }
-    e.target.value = '';
-  });
-
-  // --- CLEAR DATA ---
-  document.getElementById('clear-data')?.addEventListener('click', async () => {
-    if (confirm('⚠️ Delete ALL data? This cannot be undone.')) {
-      await clearStore('ponds');
-      await clearStore('dailyLogs');
-      await clearStore('harvests');
-      await clearStore('tideLogs');
-      await renderPondList();
-      await updateSelectors();
-      showMessage('log-message', '🗑️ All data cleared.', 'info');
-    }
-  });
-}
 
 // ---- CHART RENDERING ----
 function renderCharts(pond, logs, harvests) {
@@ -697,56 +473,275 @@ function renderCrossCycleComparison(pond, logs, harvests) {
   container.innerHTML = html;
 }
 
-// ---- OVERRIDE renderAnalysis TO INJECT CHARTS ----
+// ---- INJECT CHARTS INTO ANALYSIS TAB ----
+async function injectChartSection() {
+  const container = document.getElementById('analysis-content');
+  if (!container) return;
+  
+  // Check if charts already exist
+  if (document.getElementById('chart-section')) return;
+  
+  const pondId = document.getElementById('analysis-pond')?.value;
+  if (!pondId) return;
+  
+  const allPonds = await getAll('ponds');
+  const pond = allPonds.find(p => p.id === pondId);
+  if (!pond) return;
+  
+  const logs = await getByIndex('dailyLogs', 'pondId', pondId);
+  const harvests = await getByIndex('harvests', 'pondId', pondId);
+  
+  const chartSection = document.createElement('div');
+  chartSection.id = 'chart-section';
+  chartSection.innerHTML = `
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <h3 style="margin-bottom:12px;">📊 Performance Charts</h3>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">FCR Trend</div>
+          <canvas id="chart-fcr" style="width:100%;height:200px;"></canvas>
+        </div>
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Growth Trend</div>
+          <canvas id="chart-growth" style="width:100%;height:200px;"></canvas>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <h3 style="margin-bottom:12px;">📈 Trend Analysis</h3>
+      <div id="trend-analysis"></div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <h3 style="margin-bottom:12px;">💰 Break-Even Sensitivity</h3>
+      <div id="break-even-sensitivity"></div>
+    </div>
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+      <h3 style="margin-bottom:12px;">🔄 Cross-Cycle Comparison</h3>
+      <div id="cross-cycle-comparison"></div>
+    </div>
+  `;
+  container.appendChild(chartSection);
+  
+  renderCharts(pond, logs, harvests);
+  renderTrendAnalysis(pond, logs, harvests);
+  renderBreakEvenSensitivity(pond, logs, harvests);
+  renderCrossCycleComparison(pond, logs, harvests);
+}
+
+// ---- OVERRIDE renderAnalysis ----
 const originalRenderAnalysis = renderAnalysis;
 renderAnalysis = async function(pondId) {
   await originalRenderAnalysis(pondId);
-  if (pondId) {
-    const allPonds = await getAll('ponds');
-    const pond = allPonds.find(p => p.id === pondId);
-    if (pond) {
-      const logs = await getByIndex('dailyLogs', 'pondId', pondId);
-      const harvests = await getByIndex('harvests', 'pondId', pondId);
-      const container = document.getElementById('analysis-content');
-      if (container) {
-        const chartSection = document.createElement('div');
-        chartSection.id = 'chart-section';
-        chartSection.innerHTML = `
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-            <h3 style="margin-bottom:12px;">📊 Performance Charts</h3>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-              <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
-                <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">FCR Trend</div>
-                <canvas id="chart-fcr" style="width:100%;height:200px;"></canvas>
-              </div>
-              <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
-                <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">Growth Trend</div>
-                <canvas id="chart-growth" style="width:100%;height:200px;"></canvas>
-              </div>
-            </div>
-          </div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-            <h3 style="margin-bottom:12px;">📈 Trend Analysis</h3>
-            <div id="trend-analysis"></div>
-          </div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-            <h3 style="margin-bottom:12px;">💰 Break-Even Sensitivity</h3>
-            <div id="break-even-sensitivity"></div>
-          </div>
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-            <h3 style="margin-bottom:12px;">🔄 Cross-Cycle Comparison</h3>
-            <div id="cross-cycle-comparison"></div>
-          </div>
-        `;
-        container.appendChild(chartSection);
-        renderCharts(pond, logs, harvests);
-        renderTrendAnalysis(pond, logs, harvests);
-        renderBreakEvenSensitivity(pond, logs, harvests);
-        renderCrossCycleComparison(pond, logs, harvests);
+  await injectChartSection();
+};
+
+// ---- EVENT LISTENERS ----
+function setupEventListeners() {
+  // --- TAB NAVIGATION ---
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const tab = btn.dataset.tab;
+      showTab(tab);
+      if (tab === 'dashboard') await renderPondList();
+      if (tab === 'analysis') {
+        const pondId = document.getElementById('analysis-pond')?.value;
+        await renderAnalysis(pondId);
       }
+      if (tab === 'log') await updateSelectors();
+      if (tab === 'harvest') {
+        await updateSelectors();
+        const pondId = document.getElementById('harvest-pond')?.value;
+        await renderHarvestList(pondId);
+      }
+    });
+  });
+
+  // --- ADD POND ---
+  document.getElementById('add-pond-btn')?.addEventListener('click', showAddPondModal);
+
+  // --- MODAL ---
+  document.querySelector('.modal-close')?.addEventListener('click', () => {
+    document.getElementById('modal').style.display = 'none';
+  });
+  document.getElementById('modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) document.getElementById('modal').style.display = 'none';
+  });
+
+  // --- LOG FORM ---
+  document.getElementById('log-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pondId = document.getElementById('log-pond').value;
+    if (!pondId) { showMessage('log-message', 'Please select a pond first.', 'error'); return; }
+    
+    const temp = validateNumber(document.getElementById('log-temp').value);
+    const ph = validateNumber(document.getElementById('log-ph').value);
+    const salinity = validateNumber(document.getElementById('log-salinity').value);
+    const doVal = validateNumber(document.getElementById('log-do').value);
+    const ammonia = validateNumber(document.getElementById('log-ammonia').value);
+    const feedAmount = validateNumber(document.getElementById('log-feed-amount').value, 0);
+    const feedCost = validateNumber(document.getElementById('log-feed-cost').value, 0);
+    const mortality = validateInt(document.getElementById('log-mortality').value, 0);
+    const weight = validateNumber(document.getElementById('log-weight').value, 0);
+    
+    if (temp === null || ph === null || salinity === null || doVal === null || ammonia === null) {
+      showMessage('log-message', 'Please fill in all water quality fields with valid numbers.', 'error');
+      return;
+    }
+
+    const log = {
+      pondId, date: document.getElementById('log-date').value,
+      temp, ph, salinity, do: doVal, ammonia,
+      feedType: document.getElementById('log-feed-type').value,
+      feedAmount, feedCost, mortality,
+      cause: document.getElementById('log-cause').value.trim() || '',
+      weather: document.getElementById('log-weather').value,
+      weight, notes: document.getElementById('log-notes').value.trim() || '',
+      createdAt: new Date().toISOString()
+    };
+
+    await add('dailyLogs', log);
+    showMessage('log-message', '✅ Log saved successfully!', 'success');
+    document.getElementById('log-form').reset();
+    document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+    await updateSelectors();
+    await renderPondList();
+  });
+
+  // --- HARVEST FORM ---
+  document.getElementById('harvest-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const pondId = document.getElementById('harvest-pond').value;
+    if (!pondId) { showMessage('harvest-message', 'Please select a pond first.', 'error'); return; }
+    
+    const weight = validateNumber(document.getElementById('harvest-weight').value);
+    const price = validateNumber(document.getElementById('harvest-price').value);
+    let revenue = validateNumber(document.getElementById('harvest-revenue').value);
+    
+    if (weight === null || price === null || weight <= 0 || price <= 0) {
+      showMessage('harvest-message', 'Please enter valid weight and price.', 'error');
+      return;
+    }
+    
+    if (revenue === null || revenue <= 0) {
+      revenue = Math.round(weight * price);
+      document.getElementById('harvest-revenue').value = revenue;
+    }
+
+    const harvest = {
+      pondId, date: document.getElementById('harvest-date').value,
+      weight, price, revenue,
+      buyer: document.getElementById('harvest-buyer').value.trim() || '',
+      notes: document.getElementById('harvest-notes').value.trim() || '',
+      createdAt: new Date().toISOString()
+    };
+
+    await add('harvests', harvest);
+    const pond = (await getAll('ponds')).find(p => p.id === pondId);
+    if (pond) { pond.harvested = true; await update('ponds', pond); }
+    
+    showMessage('harvest-message', '✅ Harvest record saved!', 'success');
+    document.getElementById('harvest-form').reset();
+    document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('harvest-revenue').value = '';
+    await renderHarvestList(pondId);
+    await renderPondList();
+    await updateSelectors();
+  });
+
+  // --- HARVEST AUTO-CALC ---
+  document.getElementById('harvest-weight')?.addEventListener('input', calcRevenue);
+  document.getElementById('harvest-price')?.addEventListener('input', calcRevenue);
+  function calcRevenue() {
+    const weight = validateNumber(document.getElementById('harvest-weight').value);
+    const price = validateNumber(document.getElementById('harvest-price').value);
+    if (weight !== null && price !== null && weight > 0 && price > 0) {
+      document.getElementById('harvest-revenue').value = Math.round(weight * price);
     }
   }
-};
+
+  // --- HARVEST POND SELECTOR ---
+  document.getElementById('harvest-pond')?.addEventListener('change', async (e) => {
+    await renderHarvestList(e.target.value);
+  });
+
+  // --- TIDE FORM ---
+  document.getElementById('tide-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tide = {
+      date: document.getElementById('tide-date').value,
+      highLevel: validateNumber(document.getElementById('tide-high').value, 0),
+      highTime: document.getElementById('tide-high-time').value || '',
+      lowLevel: validateNumber(document.getElementById('tide-low').value, 0),
+      lowTime: document.getElementById('tide-low-time').value || '',
+      createdAt: new Date().toISOString()
+    };
+    await add('tideLogs', tide);
+    showMessage('tide-message', '✅ Tide data saved!', 'success');
+  });
+
+  // --- ANALYSIS POND SELECTOR ---
+  document.getElementById('analysis-pond')?.addEventListener('change', async (e) => {
+    const pondId = e.target.value;
+    await renderAnalysis(pondId);
+  });
+
+  // --- THEME ---
+  document.getElementById('theme-light')?.addEventListener('click', () => {
+    document.documentElement.removeAttribute('data-theme');
+    localStorage.setItem('theme', 'light');
+  });
+  document.getElementById('theme-dark')?.addEventListener('click', () => {
+    document.documentElement.setAttribute('data-theme', 'dark');
+    localStorage.setItem('theme', 'dark');
+  });
+
+  // --- EXPORT DATA ---
+  document.getElementById('export-data')?.addEventListener('click', async () => {
+    const data = await exportAllData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fishpond-data-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    localStorage.setItem('lastExportDate', new Date().toISOString());
+    showMessage('log-message', '✅ Data exported! Last export date saved.', 'success');
+  });
+
+  // --- IMPORT DATA ---
+  document.getElementById('import-data')?.addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+  document.getElementById('import-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await importAllData(data);
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', '✅ Data imported successfully!', 'success');
+    } catch (err) {
+      showMessage('log-message', '❌ Invalid file format.', 'error');
+    }
+    e.target.value = '';
+  });
+
+  // --- CLEAR DATA ---
+  document.getElementById('clear-data')?.addEventListener('click', async () => {
+    if (confirm('⚠️ Delete ALL data? This cannot be undone.')) {
+      await clearStore('ponds');
+      await clearStore('dailyLogs');
+      await clearStore('harvests');
+      await clearStore('tideLogs');
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', '🗑️ All data cleared.', 'info');
+    }
+  });
+}
 
 // ---- START ----
 document.addEventListener('DOMContentLoaded', init);
