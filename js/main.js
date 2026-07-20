@@ -6,13 +6,13 @@ import { openDB, add, getAll, getByIndex, update, remove, clearStore, exportAllD
 import { 
   getPondStatus, generateRecommendations, getPhase,
   calculateFCR, calculateSurvival, calculateDGR, 
-  calculateBreakEven, calculateROI, validateNumber 
+  calculateBreakEven, calculateROI
 } from './ooda.js';
 import { 
   showTab, showMessage, renderPondList, showPondDetail, 
   showAddPondModal, updateSelectors, renderAnalysis, renderHarvestList 
 } from './ui.js';
-import { escapeHtml, formatNumber, formatCurrency } from './utils.js';
+import { escapeHtml, formatNumber, formatCurrency, validateNumber, validateInt } from './utils.js';
 
 // ---- INIT ----
 async function init() {
@@ -34,7 +34,6 @@ async function init() {
   if (lastExport) {
     const daysSince = (now - new Date(lastExport)) / (1000 * 60 * 60 * 24);
     if (daysSince > 7) {
-      // Show reminder after a short delay
       setTimeout(() => {
         showMessage('log-message', 
           '📤 It\'s been a week since your last data export. Back up your data in Settings → Export Data!', 
@@ -111,7 +110,6 @@ function setupEventListeners() {
       if (tab === 'analysis') {
         const pondId = document.getElementById('analysis-pond')?.value;
         await renderAnalysis(pondId);
-        // If a pond is selected, render charts
         if (pondId) {
           const allPonds = await getAll('ponds');
           const pond = allPonds.find(p => p.id === pondId);
@@ -156,7 +154,7 @@ function setupEventListeners() {
     const ammonia = validateNumber(document.getElementById('log-ammonia').value);
     const feedAmount = validateNumber(document.getElementById('log-feed-amount').value, 0);
     const feedCost = validateNumber(document.getElementById('log-feed-cost').value, 0);
-    const mortality = parseInt(document.getElementById('log-mortality').value) || 0;
+    const mortality = validateInt(document.getElementById('log-mortality').value, 0);
     const weight = validateNumber(document.getElementById('log-weight').value, 0);
     
     if (temp === null || ph === null || salinity === null || doVal === null || ammonia === null) {
@@ -333,45 +331,37 @@ function setupEventListeners() {
   });
 }
 
-// ---- CHART RENDERING (Pure Canvas - No Libraries) ----
+// ---- CHART RENDERING ----
 function renderCharts(pond, logs, harvests) {
-  // Chart containers
   const fcrCanvas = document.getElementById('chart-fcr');
   const growthCanvas = document.getElementById('chart-growth');
-  
   if (!fcrCanvas || !growthCanvas) return;
   
   const ctx1 = fcrCanvas.getContext('2d');
   const ctx2 = growthCanvas.getContext('2d');
-  
-  // Clear canvases
   ctx1.clearRect(0, 0, fcrCanvas.width, fcrCanvas.height);
   ctx2.clearRect(0, 0, growthCanvas.width, growthCanvas.height);
   
-  // Set canvas sizes
   fcrCanvas.width = fcrCanvas.parentElement.clientWidth || 400;
   fcrCanvas.height = 200;
   growthCanvas.width = growthCanvas.parentElement.clientWidth || 400;
   growthCanvas.height = 200;
   
-  // --- FCR Chart ---
   if (logs && logs.length > 1) {
     const sortedLogs = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
-    const labels = sortedLogs.map(l => l.date.substring(5)); // MM-DD
+    const labels = sortedLogs.map(l => l.date.substring(5));
     const fcrValues = [];
     let cumulativeFeed = 0;
     let cumulativeWeight = 0;
     
     for (const log of sortedLogs) {
       cumulativeFeed += validateNumber(log.feedAmount, 0);
-      // Estimate weight gain from mortality
       const alive = (pond.fingerlings || 0) - (log.mortality || 0);
       const weightGain = (alive * validateNumber(log.weight, 0)) / 1000;
       cumulativeWeight += weightGain;
       const fcr = cumulativeWeight > 0 ? Math.round((cumulativeFeed / cumulativeWeight) * 100) / 100 : 0;
       fcrValues.push(fcr);
     }
-    
     drawBarChart(ctx1, labels, fcrValues, 'FCR', '#1a5f7a', 1.5);
   } else {
     ctx1.fillStyle = '#888';
@@ -380,12 +370,10 @@ function renderCharts(pond, logs, harvests) {
     ctx1.fillText('Not enough data for FCR chart', fcrCanvas.width/2, fcrCanvas.height/2);
   }
   
-  // --- Growth Chart ---
   if (logs && logs.length > 1) {
     const sortedLogs = [...logs].sort((a, b) => new Date(a.date) - new Date(b.date));
     const labels = sortedLogs.map(l => l.date.substring(5));
     const growthValues = sortedLogs.map(l => validateNumber(l.weight, 0));
-    
     drawLineChart(ctx2, labels, growthValues, 'Weight (g)', '#2ecc71');
   } else {
     ctx2.fillStyle = '#888';
@@ -402,12 +390,10 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
   const pad = { top: 20, bottom: 30, left: 40, right: 10 };
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
-  
   const maxVal = Math.max(...values, targetLine || 0) * 1.2 || 1;
   const barW = Math.min(chartW / values.length * 0.6, 30);
   const gap = chartW / values.length;
   
-  // Draw grid lines
   ctx.strokeStyle = '#ddd';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= 4; i++) {
@@ -422,24 +408,18 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
     ctx.fillText((maxVal * i / 4).toFixed(1), pad.left - 5, y + 3);
   }
   
-  // Draw bars
   for (let i = 0; i < values.length; i++) {
     const x = pad.left + i * gap + (gap - barW) / 2;
     const barH = (values[i] / maxVal) * chartH;
     const y = pad.top + chartH - barH;
-    
-    // Bar
     ctx.fillStyle = values[i] > (targetLine || Infinity) ? '#e74c3c' : color;
     ctx.fillRect(x, y, barW, barH);
-    
-    // Label
     ctx.fillStyle = '#888';
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(labels[i] || '', x + barW/2, h - pad.bottom + 15);
   }
   
-  // Target line
   if (targetLine) {
     const targetY = pad.top + chartH - (targetLine / maxVal) * chartH;
     ctx.strokeStyle = '#e74c3c';
@@ -455,7 +435,6 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
     ctx.textAlign = 'left';
     ctx.fillText('Target ' + targetLine, w - pad.right - 70, targetY - 5);
   }
-  
   ctx.fillStyle = '#888';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
@@ -469,12 +448,10 @@ function drawLineChart(ctx, labels, values, label, color) {
   const pad = { top: 20, bottom: 30, left: 40, right: 10 };
   const chartW = w - pad.left - pad.right;
   const chartH = h - pad.top - pad.bottom;
-  
   const maxVal = Math.max(...values, 1) * 1.2;
   const minVal = Math.min(...values, 0);
   const range = maxVal - minVal || 1;
   
-  // Draw grid lines
   ctx.strokeStyle = '#ddd';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= 4; i++) {
@@ -490,7 +467,6 @@ function drawLineChart(ctx, labels, values, label, color) {
     ctx.fillText(val.toFixed(1), pad.left - 5, y + 3);
   }
   
-  // Draw line
   if (values.length > 1) {
     ctx.beginPath();
     ctx.strokeStyle = color;
@@ -502,8 +478,6 @@ function drawLineChart(ctx, labels, values, label, color) {
       else ctx.lineTo(x, y);
     }
     ctx.stroke();
-    
-    // Draw dots
     for (let i = 0; i < values.length; i++) {
       const x = pad.left + (i / (values.length - 1)) * chartW;
       const y = pad.top + chartH - ((values[i] - minVal) / range) * chartH;
@@ -517,7 +491,6 @@ function drawLineChart(ctx, labels, values, label, color) {
       ctx.fillText(labels[i] || '', x, h - pad.bottom + 15);
     }
   }
-  
   ctx.fillStyle = '#888';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
@@ -528,7 +501,6 @@ function drawLineChart(ctx, labels, values, label, color) {
 function renderTrendAnalysis(pond, logs, harvests) {
   const container = document.getElementById('trend-analysis');
   if (!container) return;
-  
   if (!logs || logs.length < 3) {
     container.innerHTML = '<p style="color:var(--text-light);">Need at least 3 days of data for trend analysis.</p>';
     return;
@@ -538,13 +510,11 @@ function renderTrendAnalysis(pond, logs, harvests) {
   const recent = sortedLogs.slice(-7);
   const old = sortedLogs.slice(-14, -7);
   
-  // Calculate averages
   const avgRecent = {
     temp: recent.reduce((s, l) => s + validateNumber(l.temp, 0), 0) / recent.length,
     ph: recent.reduce((s, l) => s + validateNumber(l.ph, 0), 0) / recent.length,
     do: recent.reduce((s, l) => s + validateNumber(l.do, 0), 0) / recent.length,
-    ammonia: recent.reduce((s, l) => s + validateNumber(l.ammonia, 0), 0) / recent.length,
-    fcr: recent.reduce((s, l) => s + validateNumber(l.fcr, 0), 0) / recent.length
+    ammonia: recent.reduce((s, l) => s + validateNumber(l.ammonia, 0), 0) / recent.length
   };
   
   const avgOld = old.length > 0 ? {
@@ -554,13 +524,12 @@ function renderTrendAnalysis(pond, logs, harvests) {
     ammonia: old.reduce((s, l) => s + validateNumber(l.ammonia, 0), 0) / old.length
   } : null;
   
-  // Build trend HTML
   let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:12px;">';
   
   const metrics = [
     { key: 'temp', label: 'Temperature', unit: '°C', target: '27-30', recent: avgRecent.temp, old: avgOld?.temp || null },
     { key: 'ph', label: 'pH', unit: '', target: '7.5-8.5', recent: avgRecent.ph, old: avgOld?.ph || null },
-    { key: 'do', label: 'Dissolved Oxygen', unit: ' ppm', target: '>5', recent: avgRecent.do, old: avgOld?.do || null },
+    { key: 'do', label: 'DO', unit: ' ppm', target: '>5', recent: avgRecent.do, old: avgOld?.do || null },
     { key: 'ammonia', label: 'Ammonia', unit: ' ppm', target: '<0.5', recent: avgRecent.ammonia, old: avgOld?.ammonia || null }
   ];
   
@@ -568,7 +537,6 @@ function renderTrendAnalysis(pond, logs, harvests) {
     const direction = m.old !== null ? (m.recent - m.old) : 0;
     const arrow = direction > 0.05 ? '📈' : direction < -0.05 ? '📉' : '➡️';
     const color = direction > 0.05 ? 'green' : direction < -0.05 ? 'red' : 'gray';
-    
     html += `
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
         <div style="font-size:0.75rem;color:var(--text-muted);">${m.label}</div>
@@ -581,15 +549,12 @@ function renderTrendAnalysis(pond, logs, harvests) {
       </div>
     `;
   }
-  
   html += '</div>';
   
-  // Feed cost % of total cost
   let totalFeedCost = 0;
   let totalOtherCost = 0;
   for (const log of logs) {
     totalFeedCost += validateNumber(log.feedCost, 0);
-    // Estimate other costs (labor, electricity, etc.) as 40% of feed cost for MVP
     totalOtherCost += validateNumber(log.feedCost, 0) * 0.4;
   }
   const totalCost = totalFeedCost + totalOtherCost;
@@ -601,7 +566,6 @@ function renderTrendAnalysis(pond, logs, harvests) {
         <div style="font-size:0.75rem;color:var(--text-muted);">Feed Cost</div>
         <div style="font-size:1.2rem;font-weight:700;color:var(--primary);">${feedPercent}%</div>
         <div style="font-size:0.7rem;color:var(--text-muted);">of total operating cost</div>
-        <div style="font-size:0.7rem;color:var(--text-muted);">${formatCurrency(totalFeedCost)} total</div>
       </div>
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;">
         <div style="font-size:0.75rem;color:var(--text-muted);">Status</div>
@@ -612,7 +576,6 @@ function renderTrendAnalysis(pond, logs, harvests) {
       </div>
     </div>
   `;
-  
   container.innerHTML = html;
 }
 
@@ -620,22 +583,18 @@ function renderTrendAnalysis(pond, logs, harvests) {
 function renderBreakEvenSensitivity(pond, logs, harvests) {
   const container = document.getElementById('break-even-sensitivity');
   if (!container) return;
-  
   const status = getPondStatus(pond, logs, harvests);
   if (!status.totalCost || status.totalCost <= 0) {
     container.innerHTML = '<p style="color:var(--text-light);">Not enough data for break-even analysis.</p>';
     return;
   }
-  
   const harvestWeight = harvests && harvests.length > 0 
     ? harvests.reduce((s, h) => s + validateNumber(h.weight, 0), 0)
     : status.totalWeightGain;
-  
   if (harvestWeight <= 0) {
     container.innerHTML = '<p style="color:var(--text-light);">No harvest weight recorded yet.</p>';
     return;
   }
-  
   const breakEven = status.breakEven || (status.totalCost / harvestWeight);
   const scenarios = [
     { label: 'Low Price', price: Math.round(breakEven * 0.8 * 100) / 100 },
@@ -643,14 +602,11 @@ function renderBreakEvenSensitivity(pond, logs, harvests) {
     { label: 'Good Price', price: Math.round(breakEven * 1.2 * 100) / 100 },
     { label: 'High Price', price: Math.round(breakEven * 1.4 * 100) / 100 }
   ];
-  
   let html = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-top:12px;">`;
-  
   for (const s of scenarios) {
     const profit = (s.price - breakEven) * harvestWeight;
     const color = profit > 0 ? '#2ecc71' : '#e74c3c';
     const emoji = profit > 0 ? '✅' : '❌';
-    
     html += `
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;border-left:4px solid ${color};">
         <div style="font-size:0.75rem;color:var(--text-muted);">${s.label}</div>
@@ -660,7 +616,6 @@ function renderBreakEvenSensitivity(pond, logs, harvests) {
       </div>
     `;
   }
-  
   html += '</div>';
   container.innerHTML = html;
 }
@@ -669,33 +624,22 @@ function renderBreakEvenSensitivity(pond, logs, harvests) {
 function renderCrossCycleComparison(pond, logs, harvests) {
   const container = document.getElementById('cross-cycle-comparison');
   if (!container) return;
-  
-  // Check if there are harvests (multiple cycles)
   if (!harvests || harvests.length < 2) {
     container.innerHTML = '<p style="color:var(--text-light);">Need at least 2 harvest cycles for comparison.</p>';
     return;
   }
-  
   const sortedHarvests = [...harvests].sort((a, b) => new Date(a.date) - new Date(b.date));
   const cycles = sortedHarvests.map((h, i) => {
     const logsForCycle = logs.filter(l => new Date(l.date) <= new Date(h.date));
-    // Rough estimate: find the previous harvest date to filter logs
     const prevDate = i > 0 ? new Date(sortedHarvests[i-1].date) : new Date(0);
     const cycleLogs = logsForCycle.filter(l => new Date(l.date) > prevDate);
-    
     const totalFeed = cycleLogs.reduce((s, l) => s + validateNumber(l.feedAmount, 0), 0);
     const totalCost = cycleLogs.reduce((s, l) => s + validateNumber(l.feedCost, 0), 0);
     const weight = validateNumber(h.weight, 0);
     const revenue = validateNumber(h.revenue, 0);
     const fcr = weight > 0 ? Math.round((totalFeed / weight) * 100) / 100 : 0;
     const roi = totalCost > 0 ? Math.round(((revenue - totalCost) / totalCost) * 100) : 0;
-    
-    return {
-      cycle: i + 1,
-      date: h.date,
-      weight, revenue, totalCost, totalFeed,
-      fcr, roi
-    };
+    return { cycle: i + 1, date: h.date, weight, revenue, totalCost, totalFeed, fcr, roi };
   });
   
   let html = `
@@ -712,7 +656,6 @@ function renderCrossCycleComparison(pond, logs, harvests) {
         </thead>
         <tbody>
   `;
-  
   for (const c of cycles) {
     const isBest = c.roi === Math.max(...cycles.map(x => x.roi));
     html += `
@@ -725,16 +668,13 @@ function renderCrossCycleComparison(pond, logs, harvests) {
       </tr>
     `;
   }
-  
   html += '</tbody></table></div>';
   
-  // Show improvement metrics
   if (cycles.length >= 2) {
     const last = cycles[cycles.length - 1];
     const first = cycles[0];
     const roiChange = last.roi - first.roi;
     const fcrChange = last.fcr - first.fcr;
-    
     html += `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
         <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;border-left:4px solid ${roiChange > 0 ? '#2ecc71' : '#e74c3c'};">
@@ -754,27 +694,21 @@ function renderCrossCycleComparison(pond, logs, harvests) {
       </div>
     `;
   }
-  
   container.innerHTML = html;
 }
 
-// ---- ADD CHARTS TO ANALYSIS PAGE ----
-// Extend renderAnalysis to include charts
+// ---- OVERRIDE renderAnalysis TO INJECT CHARTS ----
 const originalRenderAnalysis = renderAnalysis;
 renderAnalysis = async function(pondId) {
   await originalRenderAnalysis(pondId);
-  
   if (pondId) {
     const allPonds = await getAll('ponds');
     const pond = allPonds.find(p => p.id === pondId);
     if (pond) {
       const logs = await getByIndex('dailyLogs', 'pondId', pondId);
       const harvests = await getByIndex('harvests', 'pondId', pondId);
-      
-      // Inject chart containers into analysis
       const container = document.getElementById('analysis-content');
       if (container) {
-        // Add chart section
         const chartSection = document.createElement('div');
         chartSection.id = 'chart-section';
         chartSection.innerHTML = `
@@ -791,25 +725,20 @@ renderAnalysis = async function(pondId) {
               </div>
             </div>
           </div>
-          
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
             <h3 style="margin-bottom:12px;">📈 Trend Analysis</h3>
             <div id="trend-analysis"></div>
           </div>
-          
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
             <h3 style="margin-bottom:12px;">💰 Break-Even Sensitivity</h3>
             <div id="break-even-sensitivity"></div>
           </div>
-          
           <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
             <h3 style="margin-bottom:12px;">🔄 Cross-Cycle Comparison</h3>
             <div id="cross-cycle-comparison"></div>
           </div>
         `;
         container.appendChild(chartSection);
-        
-        // Render charts and analysis
         renderCharts(pond, logs, harvests);
         renderTrendAnalysis(pond, logs, harvests);
         renderBreakEvenSensitivity(pond, logs, harvests);
