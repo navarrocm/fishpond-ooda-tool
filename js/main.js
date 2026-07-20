@@ -473,8 +473,8 @@ function renderCrossCycleComparison(pond, logs, harvests) {
   container.innerHTML = html;
 }
 
-// ---- INJECT CHARTS INTO ANALYSIS TAB ----
-async function injectChartSection() {
+// ---- INJECT CHARTS INTO ANALYSIS TAB (NEW NAME - NO OVERRIDE) ----
+async function injectChartsIntoAnalysis() {
   const container = document.getElementById('analysis-content');
   if (!container) return;
   
@@ -528,12 +528,13 @@ async function injectChartSection() {
   renderCrossCycleComparison(pond, logs, harvests);
 }
 
-// ---- OVERRIDE renderAnalysis ----
-const originalRenderAnalysis = renderAnalysis;
-renderAnalysis = async function(pondId) {
-  await originalRenderAnalysis(pondId);
-  await injectChartSection();
-};
+// ---- WRAPPER FUNCTION (CALLS BOTH) ----
+async function renderFullAnalysis(pondId) {
+  // Call the imported renderAnalysis from ui.js
+  await renderAnalysis(pondId);
+  // Then inject charts
+  await injectChartsIntoAnalysis();
+}
 
 // ---- EVENT LISTENERS ----
 function setupEventListeners() {
@@ -545,7 +546,7 @@ function setupEventListeners() {
       if (tab === 'dashboard') await renderPondList();
       if (tab === 'analysis') {
         const pondId = document.getElementById('analysis-pond')?.value;
-        await renderAnalysis(pondId);
+        await renderFullAnalysis(pondId);
       }
       if (tab === 'log') await updateSelectors();
       if (tab === 'harvest') {
@@ -682,7 +683,7 @@ function setupEventListeners() {
   // --- ANALYSIS POND SELECTOR ---
   document.getElementById('analysis-pond')?.addEventListener('change', async (e) => {
     const pondId = e.target.value;
-    await renderAnalysis(pondId);
+    await renderFullAnalysis(pondId);
   });
 
   // --- THEME ---
