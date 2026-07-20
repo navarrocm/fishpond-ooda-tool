@@ -189,36 +189,41 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== TIDE (FIXED - No Iframe) ===== -->
+      <!-- ===== TIDE (FIXED - VISIBLE BUTTON) ===== -->
       <section id="tide" class="tab-panel">
         <div class="panel-header">
           <h2>🌊 Tide Predictions</h2>
         </div>
         
-        <!-- NAMRIA LINK CARD (Opens in new window) -->
-        <div style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid var(--primary);">
-          <h3 style="margin-bottom:8px;display:flex;align-items:center;gap:8px;">
-            <span>📡</span> Get Official Tide Data
+        <!-- NAMRIA LINK CARD - VISIBLE BUTTON -->
+        <div style="background:var(--card-bg);padding:24px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;border-left:6px solid var(--primary);">
+          <h3 style="margin-bottom:12px;font-size:1.2rem;display:flex;align-items:center;gap:10px;">
+            <span style="font-size:1.5rem;">📡</span> 
+            Get Official Tide Data
           </h3>
-          <p style="color:var(--text-light);margin-bottom:12px;">
+          <p style="color:var(--text-light);margin-bottom:16px;font-size:1rem;">
             NAMRIA provides official tide predictions for the Philippines. 
-            Click the button below to check today's tide levels in a new window.
+            Click the button below to check today's tide levels.
           </p>
+          
+          <!-- LARGE, VISIBLE BUTTON -->
           <a href="https://www.namria.gov.ph/#gsc.tab=0" 
              target="_blank" 
              rel="noopener noreferrer"
-             style="display:inline-flex;align-items:center;gap:8px;padding:10px 20px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;transition:var(--transition);">
-            🌊 Open NAMRIA Tide Page
-            <span style="font-size:0.8rem;opacity:0.8;">↗</span>
+             style="display:inline-flex;align-items:center;gap:12px;padding:14px 28px;background:var(--primary);color:#fff;border-radius:10px;text-decoration:none;font-weight:700;font-size:1.1rem;transition:all 0.2s ease;box-shadow:0 4px 12px rgba(26,95,122,0.3);border:2px solid var(--primary);">
+            <span style="font-size:1.3rem;">🌊</span>
+            Open NAMRIA Tide Page
+            <span style="font-size:1rem;opacity:0.8;margin-left:4px;">↗</span>
           </a>
-          <p style="font-size:0.85rem;color:var(--text-muted);margin-top:12px;">
-            After checking tide levels, log them manually below. This helps your pond's water management history.
+          
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+            ⚡ The page opens in a new tab. After checking tide levels, log them manually below.
           </p>
         </div>
 
         <!-- Manual Tide Entry -->
-        <div class="tide-manual" style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);">
-          <h3 style="margin-bottom:12px;">Manual Tide Entry</h3>
+        <div style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);">
+          <h3 style="margin-bottom:12px;">📝 Manual Tide Entry</h3>
           <form id="tide-form">
             <div class="form-row">
               <div class="form-group">
