@@ -8,8 +8,6 @@
   <!-- ABSOLUTE PATHS FOR GITHUB PAGES -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
   <meta name="theme-color" content="#1a5f7a">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="description" content="Smart decision support for fishpond operators">
   
   <!-- ABSOLUTE CSS PATH -->
@@ -186,61 +184,77 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== TIDE ===== -->
+      <!-- ===== TIDE (SIMPLIFIED - BIG MESSAGE TO VISIT NAMRIA) ===== -->
       <section id="tide" class="tab-panel">
-        <div style="max-width:800px;margin:0 auto;padding:0 12px;">
-          <!-- NAMRIA LINK CARD -->
-          <div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;margin-bottom:20px;border-left:6px solid #1a5f7a;">
-            <h2 style="font-size:1.4rem;margin-bottom:12px;color:#1a5f7a;display:flex;align-items:center;gap:10px;">
-              <span>📡</span> Get Official Tide Data
+        <div style="max-width:800px;margin:0 auto;padding:20px 12px;">
+          
+          <!-- BIG HEADER MESSAGE -->
+          <div style="background:#1a5f7a;border-radius:16px;padding:40px 30px;margin-bottom:24px;text-align:center;color:#ffffff;box-shadow:0 8px 24px rgba(26,95,122,0.3);">
+            <div style="font-size:4rem;margin-bottom:12px;">🌊</div>
+            <h1 style="font-size:2.2rem;margin-bottom:8px;font-weight:700;">Tide Predictions</h1>
+            <p style="font-size:1.3rem;opacity:0.9;max-width:600px;margin:0 auto;">
+              Visit the official NAMRIA website for accurate tide forecasts
+            </p>
+          </div>
+
+          <!-- NAMRIA VISIT CARD -->
+          <div style="background:#ffffff;border-radius:16px;padding:32px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:6px solid #f39c12;margin-bottom:24px;">
+            <h2 style="font-size:1.8rem;color:#1a5f7a;margin-bottom:12px;">
+              📡 Get Official Tide Data
             </h2>
-            <p style="color:#555;margin-bottom:16px;">NAMRIA provides official tide predictions for the Philippines. Click the button below to check today's tide levels.</p>
+            <p style="font-size:1.1rem;color:#555;margin-bottom:16px;line-height:1.7;">
+              NAMRIA (National Mapping and Resource Information Authority) provides 
+              <strong>official tide predictions</strong> for all regions of the Philippines.
+            </p>
             
-            <a href="https://www.namria.gov.ph/#gsc.tab=0" 
-               target="_blank" 
-               rel="noopener noreferrer" 
-               style="display:inline-flex;align-items:center;gap:12px;padding:14px 28px;background:#1a5f7a;color:#ffffff;font-weight:700;font-size:1.1rem;text-decoration:none;border-radius:10px;border:2px solid #1a5f7a;box-shadow:0 4px 12px rgba(26,95,122,0.3);transition:all 0.2s ease;cursor:pointer;">
-              <span style="font-size:1.3rem;">🌊</span>
-              Open NAMRIA Tide Page
-              <span style="font-size:1rem;opacity:0.8;">↗</span>
-            </a>
+            <div style="background:#f8f9fa;border-radius:12px;padding:20px;margin-bottom:16px;border:2px dashed #dce4ec;">
+              <p style="font-size:1.1rem;color:#1a5f7a;font-weight:600;margin-bottom:4px;">
+                🌐 Visit NAMRIA for today's tide levels:
+              </p>
+              <a href="https://www.namria.gov.ph/#gsc.tab=0" 
+                 target="_blank" 
+                 rel="noopener noreferrer"
+                 style="display:inline-block;padding:12px 24px;background:#1a5f7a;color:#ffffff;font-weight:700;font-size:1.1rem;text-decoration:none;border-radius:10px;margin-top:8px;transition:0.2s;">
+                🔗 namria.gov.ph
+              </a>
+            </div>
             
-            <p style="margin-top:16px;font-size:0.85rem;color:#888;border-top:1px solid #eee;padding-top:12px;">
-              ⚡ The page opens in a new tab. After checking tide levels, log them manually below.
+            <p style="font-size:1rem;color:#888;border-top:1px solid #eee;padding-top:16px;">
+              ⚡ After checking tide levels, log them manually below for your records.
             </p>
           </div>
 
           <!-- MANUAL TIDE ENTRY -->
-          <div style="background:#ffffff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);padding:24px;border-left:6px solid #2ecc71;">
-            <h2 style="font-size:1.4rem;margin-bottom:12px;color:#2ecc71;display:flex;align-items:center;gap:10px;">
-              <span>📝</span> Manual Tide Entry
+          <div style="background:#ffffff;border-radius:16px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:6px solid #2ecc71;">
+            <h2 style="font-size:1.4rem;color:#2ecc71;margin-bottom:16px;">
+              📝 Manual Tide Entry
             </h2>
             <form id="tide-form">
-              <div style="margin-bottom:12px;">
-                <label for="tide-date" style="display:block;font-size:0.85rem;font-weight:600;color:#555;margin-bottom:4px;">Date *</label>
-                <input type="date" id="tide-date" required style="width:100%;padding:10px 12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;background:#ffffff;">
+              <div style="margin-bottom:14px;">
+                <label for="tide-date" style="display:block;font-weight:600;color:#555;margin-bottom:4px;">Date *</label>
+                <input type="date" id="tide-date" required style="width:100%;padding:12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;">
               </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
                 <div>
-                  <label for="tide-high" style="display:block;font-size:0.85rem;font-weight:600;color:#555;margin-bottom:4px;">High Tide Level (m)</label>
-                  <input type="number" id="tide-high" step="0.01" placeholder="e.g., 1.2" style="width:100%;padding:10px 12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;background:#ffffff;">
+                  <label for="tide-high" style="display:block;font-weight:600;color:#555;margin-bottom:4px;">High Tide Level (m)</label>
+                  <input type="number" id="tide-high" step="0.01" placeholder="e.g., 1.2" style="width:100%;padding:12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;">
                 </div>
                 <div>
-                  <label for="tide-high-time" style="display:block;font-size:0.85rem;font-weight:600;color:#555;margin-bottom:4px;">High Tide Time</label>
-                  <input type="time" id="tide-high-time" style="width:100%;padding:10px 12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;background:#ffffff;">
-                </div>
-              </div>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                <div>
-                  <label for="tide-low" style="display:block;font-size:0.85rem;font-weight:600;color:#555;margin-bottom:4px;">Low Tide Level (m)</label>
-                  <input type="number" id="tide-low" step="0.01" placeholder="e.g., 0.3" style="width:100%;padding:10px 12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;background:#ffffff;">
-                </div>
-                <div>
-                  <label for="tide-low-time" style="display:block;font-size:0.85rem;font-weight:600;color:#555;margin-bottom:4px;">Low Tide Time</label>
-                  <input type="time" id="tide-low-time" style="width:100%;padding:10px 12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;background:#ffffff;">
+                  <label for="tide-high-time" style="display:block;font-weight:600;color:#555;margin-bottom:4px;">High Tide Time</label>
+                  <input type="time" id="tide-high-time" style="width:100%;padding:12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;">
                 </div>
               </div>
-              <button type="submit" style="padding:12px 24px;background:#2ecc71;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:0.2s;">💾 Save Tide Data</button>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                <div>
+                  <label for="tide-low" style="display:block;font-weight:600;color:#555;margin-bottom:4px;">Low Tide Level (m)</label>
+                  <input type="number" id="tide-low" step="0.01" placeholder="e.g., 0.3" style="width:100%;padding:12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;">
+                </div>
+                <div>
+                  <label for="tide-low-time" style="display:block;font-weight:600;color:#555;margin-bottom:4px;">Low Tide Time</label>
+                  <input type="time" id="tide-low-time" style="width:100%;padding:12px;border:1px solid #dce4ec;border-radius:8px;font-size:1rem;">
+                </div>
+              </div>
+              <button type="submit" style="padding:14px 28px;background:#2ecc71;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;transition:0.2s;">💾 Save Tide Data</button>
             </form>
             <div id="tide-message" class="message" style="display:none;"></div>
           </div>
