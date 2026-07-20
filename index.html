@@ -5,27 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
   
-  <!-- 🔥 HARDCODED PATHS FOR GITHUB PAGES -->
+  <!-- BASE URL FOR GITHUB PAGES -->
   <base href="/fishpond-ooda-tool/">
   
-  <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
-  <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1a5f7a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <meta name="description" content="Smart decision support for fishpond operators">
   
-  <!-- RELATIVE PATHS (no leading slash) -->
+  <!-- RELATIVE PATHS -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
   <div id="app">
+    <!-- HEADER -->
     <header id="app-header">
       <h1>🐟 Fishpond OODA</h1>
       <span id="online-status" class="online">● Online</span>
     </header>
 
+    <!-- TAB NAVIGATION -->
     <nav id="tab-nav">
       <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
       <button class="tab-btn" data-tab="log">📝 Log Entry</button>
@@ -35,8 +36,10 @@
       <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
     </nav>
 
+    <!-- CONTENT -->
     <main id="tab-content">
-      <!-- DASHBOARD -->
+      
+      <!-- ===== DASHBOARD ===== -->
       <section id="dashboard" class="tab-panel active">
         <div class="panel-header">
           <h2>Your Ponds</h2>
@@ -46,10 +49,10 @@
         <div id="pond-detail" style="display:none;"></div>
       </section>
 
-      <!-- LOG ENTRY -->
+      <!-- ===== LOG ENTRY ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
-          <h2>Daily Log Entry</h2>
+          <h2>📝 Daily Log Entry</h2>
           <span id="log-pond-name">Select a pond first</span>
         </div>
         <form id="log-form" novalidate>
@@ -139,7 +142,7 @@
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- HARVEST ENTRY -->
+      <!-- ===== HARVEST ENTRY ===== -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
           <h2>🌾 Harvest Entry</h2>
@@ -186,58 +189,76 @@
         <div id="harvest-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- TIDE -->
+      <!-- ===== TIDE (FIXED - No Dead Iframe) ===== -->
       <section id="tide" class="tab-panel">
         <div class="panel-header">
-          <h2>🌊 NAMRIA Tide Predictions</h2>
+          <h2>🌊 Tide Predictions</h2>
         </div>
-        <div class="tide-container">
-          <div class="tide-iframe-wrapper">
-            <iframe 
-              src="https://www.namria.gov.ph/tides/pwa/" 
-              title="NAMRIA Tide Predictions"
-              allow="geolocation"
-              loading="lazy"
-              sandbox="allow-scripts allow-same-origin allow-forms"
-            ></iframe>
+        
+        <!-- REPLACEMENT: Store Badges + Link -->
+        <div class="tide-card" style="background:var(--card-bg);padding:20px;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid var(--primary);">
+          <h3 style="margin-bottom:8px;">📱 Get Official Tide Data</h3>
+          <p style="color:var(--text-light);margin-bottom:12px;">
+            NAMRIA distributes tide predictions through their official mobile app and printed tables.
+            Download the <strong>PH TIDES</strong> app for accurate daily tide levels:
+          </p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+            <a href="https://play.google.com/store/apps/details?id=com.namria.phtides" 
+               target="_blank" 
+               style="display:inline-block;padding:8px 16px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+              📱 Google Play
+            </a>
+            <a href="https://apps.apple.com/ph/app/ph-tides/" 
+               target="_blank" 
+               style="display:inline-block;padding:8px 16px;background:var(--primary);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+              📱 App Store
+            </a>
+            <span style="display:inline-block;padding:8px 16px;background:var(--border);color:var(--text);border-radius:8px;">
+              📄 Or use printed NAMRIA tables
+            </span>
           </div>
-          <div class="tide-manual">
-            <h3>Manual Tide Entry</h3>
-            <form id="tide-form">
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Date *</label>
-                  <input type="date" id="tide-date" required>
-                </div>
+          <p style="font-size:0.85rem;color:var(--text-muted);">
+            After checking tide levels, log them manually below. This helps your pond's water management history.
+          </p>
+        </div>
+
+        <!-- Manual Tide Entry (Already Built) -->
+        <div class="tide-manual">
+          <h3>Manual Tide Entry</h3>
+          <form id="tide-form">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Date *</label>
+                <input type="date" id="tide-date" required>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>High Tide Level (m)</label>
-                  <input type="number" id="tide-high" step="0.01">
-                </div>
-                <div class="form-group">
-                  <label>High Tide Time</label>
-                  <input type="time" id="tide-high-time">
-                </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>High Tide Level (m)</label>
+                <input type="number" id="tide-high" step="0.01" placeholder="e.g., 1.2">
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Low Tide Level (m)</label>
-                  <input type="number" id="tide-low" step="0.01">
-                </div>
-                <div class="form-group">
-                  <label>Low Tide Time</label>
-                  <input type="time" id="tide-low-time">
-                </div>
+              <div class="form-group">
+                <label>High Tide Time</label>
+                <input type="time" id="tide-high-time">
               </div>
-              <button type="submit" class="primary-btn">💾 Save Tide Data</button>
-            </form>
-            <div id="tide-message" class="message" style="display:none;"></div>
-          </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Low Tide Level (m)</label>
+                <input type="number" id="tide-low" step="0.01" placeholder="e.g., 0.3">
+              </div>
+              <div class="form-group">
+                <label>Low Tide Time</label>
+                <input type="time" id="tide-low-time">
+              </div>
+            </div>
+            <button type="submit" class="primary-btn">💾 Save Tide Data</button>
+          </form>
+          <div id="tide-message" class="message" style="display:none;"></div>
         </div>
       </section>
 
-      <!-- ANALYSIS -->
+      <!-- ===== ANALYSIS ===== -->
       <section id="analysis" class="tab-panel">
         <div class="panel-header">
           <h2>📈 Analysis</h2>
@@ -250,7 +271,7 @@
         </div>
       </section>
 
-      <!-- SETTINGS -->
+      <!-- ===== SETTINGS ===== -->
       <section id="settings" class="tab-panel">
         <div class="panel-header">
           <h2>⚙️ Settings</h2>
@@ -273,11 +294,14 @@
         </div>
         <div class="settings-section">
           <h3>About</h3>
-          <p><strong>Fishpond OODA Tool v2.0</strong></p>
+          <p><strong>Fishpond OODA Tool v2.1</strong></p>
           <p>Built for fishpond operators in the Philippines.</p>
           <p>Data stored locally in your browser.</p>
           <p style="font-size:0.8rem;color:var(--text-light);margin-top:8px;">
             Data is yours. No tracking. No cloud uploads unless you choose to.
+          </p>
+          <p style="font-size:0.75rem;color:var(--text-muted);margin-top:12px;">
+            💡 <strong>Data safety tip:</strong> Regularly export your data via Settings → Export Data to keep a backup.
           </p>
         </div>
       </section>
@@ -292,7 +316,7 @@
     </div>
   </div>
 
-    <!-- Use absolute path for the main script -->
+  <!-- ABSOLUTE PATH FOR GITHUB PAGES -->
   <script type="module" src="/fishpond-ooda-tool/js/main.js"></script>
 </body>
 </html>
