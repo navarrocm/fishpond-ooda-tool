@@ -18,14 +18,107 @@
   --transition: 0.2s ease;
 }
 
+/* ===== ANTI-EYE-STRAIN DARK MODE ===== */
 [data-theme="dark"] {
-  --bg: #121212;
-  --card-bg: #1e1e2e;
-  --text: #e0e0e0;
-  --text-light: #aaa;
-  --text-muted: #777;
-  --border: #333;
-  --shadow: 0 2px 8px rgba(0,0,0,0.4);
+  --bg: #1a1a2e;
+  --card-bg: #16213e;
+  --text: #d4d4e8;
+  --text-light: #aab;
+  --text-muted: #8899aa;
+  --border: #2a2a4a;
+  --shadow: 0 2px 8px rgba(0,0,0,0.6);
+  /* Warm tint for eye strain reduction */
+  color: #d4d4e8;
+}
+
+[data-theme="dark"] body {
+  background: #1a1a2e;
+  color: #d4d4e8;
+}
+
+[data-theme="dark"] .pond-card,
+[data-theme="dark"] .metric-card,
+[data-theme="dark"] .harvest-item,
+[data-theme="dark"] .settings-section,
+[data-theme="dark"] .tide-manual,
+[data-theme="dark"] #modal .modal-content,
+[data-theme="dark"] #pond-detail > div:not(.pond-card) {
+  background: #16213e;
+  color: #d4d4e8;
+}
+
+[data-theme="dark"] input,
+[data-theme="dark"] select,
+[data-theme="dark"] textarea {
+  background: #0f0f1f;
+  color: #d4d4e8;
+  border-color: #2a2a4a;
+}
+
+[data-theme="dark"] input:focus,
+[data-theme="dark"] select:focus {
+  outline-color: #2a7f9a;
+}
+
+[data-theme="dark"] .tab-btn {
+  color: #8899aa;
+}
+[data-theme="dark"] .tab-btn.active {
+  background: #1a5f7a;
+  color: #fff;
+}
+[data-theme="dark"] .tab-btn:hover {
+  background: #2a2a4a;
+}
+
+[data-theme="dark"] .status.green {
+  background: #1a3a2a;
+  color: #7ddfa0;
+}
+[data-theme="dark"] .status.yellow {
+  background: #3a3a1a;
+  color: #e6d07a;
+}
+[data-theme="dark"] .status.red {
+  background: #3a1a1a;
+  color: #e67a7a;
+}
+
+[data-theme="dark"] .recommendation-box {
+  background: #1a2a2a;
+  color: #7ddfa0;
+}
+[data-theme="dark"] .recommendation-box.warning {
+  background: #2a2a1a;
+  color: #e6d07a;
+}
+[data-theme="dark"] .recommendation-box.danger {
+  background: #2a1a1a;
+  color: #e67a7a;
+}
+
+[data-theme="dark"] .message.success {
+  background: #1a3a2a;
+  color: #7ddfa0;
+  border-color: #2a5a3a;
+}
+[data-theme="dark"] .message.error {
+  background: #3a1a1a;
+  color: #e67a7a;
+  border-color: #5a2a2a;
+}
+[data-theme="dark"] .message.info {
+  background: #1a2a3a;
+  color: #7ab0e6;
+  border-color: #2a4a5a;
+}
+
+[data-theme="dark"] #app-header {
+  border-bottom-color: #2a2a4a;
+}
+[data-theme="dark"] #tab-nav {
+  background: #1a1a2e;
+  border-bottom-color: #2a2a4a;
 }
 
 /* ===== RESET & BASE ===== */
@@ -140,7 +233,7 @@ body {
   cursor: pointer;
   transition: var(--transition);
 }
-.secondary-btn:hover { background: #c0c8d0; }
+.secondary-btn:hover { opacity: 0.8; }
 
 .danger-btn {
   padding: 8px 18px;
@@ -243,17 +336,13 @@ body {
   outline: 2px solid var(--primary);
   outline-offset: 0;
 }
-.form-group input.error {
-  border-color: var(--danger);
-  outline: 2px solid rgba(231, 76, 60, 0.3);
-}
 .form-group .hint {
   font-size: 0.7rem;
   color: var(--text-muted);
   margin-top: 2px;
 }
 
-/* ===== HARVEST LIST ===== */
+/* ===== HARVEST ITEM ===== */
 .harvest-item {
   background: var(--card-bg);
   padding: 12px 16px;
@@ -266,16 +355,11 @@ body {
   gap: 8px;
   box-shadow: var(--shadow);
 }
-.harvest-item .info {
-  font-size: 0.9rem;
-}
+.harvest-item .info { font-size: 0.9rem; }
 .harvest-item .info strong { color: var(--primary); }
-.harvest-item .actions {
-  display: flex;
-  gap: 6px;
-}
+.harvest-item .actions { display: flex; gap: 6px; }
 
-/* ===== TIDE IFRAME ===== */
+/* ===== TIDE ===== */
 .tide-iframe-wrapper {
   position: relative;
   width: 100%;
@@ -285,11 +369,7 @@ body {
   background: var(--card-bg);
   box-shadow: var(--shadow);
 }
-.tide-iframe-wrapper iframe {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
+.tide-iframe-wrapper iframe { width: 100%; height: 100%; border: none; }
 .tide-manual {
   margin-top: 16px;
   padding: 16px;
@@ -324,6 +404,8 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+/* ===== RECOMMENDATIONS ===== */
 .recommendation-box {
   margin-top: 16px;
   padding: 16px;
@@ -346,10 +428,7 @@ body {
   padding: 16px 0;
   border-bottom: 1px solid var(--border);
 }
-.settings-section h3 {
-  font-size: 1rem;
-  margin-bottom: 10px;
-}
+.settings-section h3 { font-size: 1rem; margin-bottom: 10px; }
 .settings-section .form-row { grid-template-columns: auto auto; }
 
 /* ===== MODAL ===== */
@@ -381,7 +460,6 @@ body {
   cursor: pointer;
   color: var(--text-light);
 }
-.modal-close:hover { color: var(--text); }
 
 /* ===== MESSAGES ===== */
 .message {
