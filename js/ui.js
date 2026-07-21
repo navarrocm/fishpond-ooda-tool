@@ -2,7 +2,7 @@
 // UI HELPERS - Complete with All Exports
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, exportAllData } from './db.js';
+import { getAll, getByIndex, add, update, remove, getById, exportAllData } from './db.js';
 import { getPondStatus, generateRecommendations, getPhase } from './ooda.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 
