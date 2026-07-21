@@ -292,4 +292,32 @@
         <div class="settings-section">
           <h3>Import / Restore</h3>
           <div class="form-row">
-            <button id="import-data" class="secondary-btn">Import Data
+            <button id="import-data" class="secondary-btn">Import Data (JSON)</button>
+            <input type="file" id="import-file" accept=".json" style="display:none;">
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Danger Zone</h3>
+          <button id="clear-data" class="danger-btn">Clear All Data</button>
+        </div>
+        <div class="settings-section">
+          <h3>About</h3>
+          <p><strong>Fishpond OODA Tool v3.0</strong></p>
+          <p>Built for fishpond operators in the Philippines.</p>
+          <p>Data stored locally in your browser.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- MODAL -->
+    <div id="modal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <span class="modal-close">&times;</span>
+        <div id="modal-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/fishpond-ooda-tool/js/main.js"></script>
+</body>
+</html>
