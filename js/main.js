@@ -2,7 +2,10 @@
 // MAIN APP - Entry Point
 // ============================================================
 
-import { openDB, add, getAll, getByIndex, update, remove, clearStore, exportAllData, importAllData } from './db.js';
+import { 
+  openDB, add, getAll, getByIndex, update, remove, clearStore, 
+  exportAllData, importAllData, loadSampleData 
+} from './db.js';
 import { 
   getPondStatus, generateRecommendations, getPhase,
   calculateFCR, calculateSurvival, calculateDGR, 
@@ -11,7 +14,7 @@ import {
 import { 
   showTab, showMessage, renderPondList, showPondDetail, 
   showAddPondModal, updateSelectors, renderAnalysis, renderHarvestList,
-  renderDecide
+  renderDecide, renderHelp, exportToCSV, printReport
 } from './ui.js';
 import { escapeHtml, formatNumber, formatCurrency, validateNumber, validateInt } from './utils.js';
 
@@ -30,7 +33,7 @@ async function init() {
   // --- DATA PERSISTENCE ---
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(persistent => {
-      console.log('📀 Persistent storage granted?', persistent);
+      console.log('Persistent storage granted?', persistent);
     });
   }
 
@@ -42,7 +45,7 @@ async function init() {
     if (daysSince > 7) {
       setTimeout(() => {
         showMessage('log-message', 
-          '📤 It\'s been a week since your last data export. Back up your data in Settings → Export Data!', 
+          'It\'s been a week since your last data export. Back up your data in Settings!', 
           'info'
         );
       }, 1000);
@@ -69,7 +72,29 @@ async function init() {
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
 
-  console.log('🐟 Fishpond OODA Tool v3.0 initialized!');
+  // --- AUTO-EXPORT ON UNLOAD ---
+  window.addEventListener('beforeunload', async (e) => {
+    const lastExport = localStorage.getItem('lastExportDate');
+    const now = new Date();
+    const daysSince = (now - new Date(lastExport)) / (1000 * 60 * 60 * 24);
+    if (daysSince > 1) {
+      const data = await exportAllData();
+      if (data.ponds && data.ponds.length > 0) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved data. Please export your backup before leaving.';
+        // Auto-export in background
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `auto-backup-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+    }
+  });
+
+  console.log('Fishpond OODA Tool v3.0 initialized!');
 }
 
 // ---- ONLINE STATUS ----
@@ -77,7 +102,7 @@ function updateOnlineStatus() {
   const el = document.getElementById('online-status');
   if (el) {
     const online = navigator.onLine;
-    el.textContent = online ? '● Online' : '● Offline';
+    el.textContent = online ? 'Online' : 'Offline';
     el.className = online ? 'online' : 'offline';
   }
 }
@@ -157,7 +182,6 @@ function renderCharts(pond, logs, harvests) {
   }
 }
 
-// ---- BAR CHART HELPER ----
 function drawBarChart(ctx, labels, values, label, color, targetLine) {
   const w = ctx.canvas.width;
   const h = ctx.canvas.height;
@@ -215,7 +239,6 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
   ctx.fillText(label, w/2, h - 2);
 }
 
-// ---- LINE CHART HELPER ----
 function drawLineChart(ctx, labels, values, label, color) {
   const w = ctx.canvas.width;
   const h = ctx.canvas.height;
@@ -309,7 +332,7 @@ function renderTrendAnalysis(pond, logs, harvests) {
   
   for (const m of metrics) {
     const direction = m.old !== null ? (m.recent - m.old) : 0;
-    const arrow = direction > 0.05 ? '📈' : direction < -0.05 ? '📉' : '➡️';
+    const arrow = direction > 0.05 ? '↑' : direction < -0.05 ? '↓' : '→';
     const color = direction > 0.05 ? 'green' : direction < -0.05 ? 'red' : 'gray';
     html += `
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
@@ -344,7 +367,7 @@ function renderTrendAnalysis(pond, logs, harvests) {
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;">
         <div style="font-size:0.75rem;color:var(--text-muted);">Status</div>
         <div style="font-size:1.2rem;font-weight:700;color:${feedPercent > 70 ? '#e74c3c' : feedPercent > 60 ? '#f39c12' : '#2ecc71'};">
-          ${feedPercent > 70 ? '⚠️ High' : feedPercent > 60 ? '⚠️ Moderate' : '✅ Good'}
+          ${feedPercent > 70 ? 'High' : feedPercent > 60 ? 'Moderate' : 'Good'}
         </div>
         <div style="font-size:0.7rem;color:var(--text-muted);">Target: <60% of total cost</div>
       </div>
@@ -491,7 +514,7 @@ async function injectChartsIntoAnalysis() {
   chartSection.id = 'chart-section';
   chartSection.innerHTML = `
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <h3 style="margin-bottom:12px;">📊 Performance Charts</h3>
+      <h3 style="margin-bottom:12px;">Performance Charts</h3>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
         <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
           <div style="font-size:0.8rem;color:var(--text-muted);margin-bottom:6px;">FCR Trend</div>
@@ -504,15 +527,15 @@ async function injectChartsIntoAnalysis() {
       </div>
     </div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <h3 style="margin-bottom:12px;">📈 Trend Analysis</h3>
+      <h3 style="margin-bottom:12px;">Trend Analysis</h3>
       <div id="trend-analysis"></div>
     </div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <h3 style="margin-bottom:12px;">💰 Break-Even Sensitivity</h3>
+      <h3 style="margin-bottom:12px;">Break-Even Sensitivity</h3>
       <div id="break-even-sensitivity"></div>
     </div>
     <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
-      <h3 style="margin-bottom:12px;">🔄 Cross-Cycle Comparison</h3>
+      <h3 style="margin-bottom:12px;">Cross-Cycle Comparison</h3>
       <div id="cross-cycle-comparison"></div>
     </div>
   `;
@@ -553,6 +576,7 @@ function setupEventListeners() {
         const pondId = document.getElementById('harvest-pond')?.value;
         await renderHarvestList(pondId);
       }
+      if (tab === 'help') renderHelp();
     });
   });
 
@@ -600,7 +624,7 @@ function setupEventListeners() {
     };
 
     await add('dailyLogs', log);
-    showMessage('log-message', '✅ Log saved successfully!', 'success');
+    showMessage('log-message', 'Log saved successfully!', 'success');
     document.getElementById('log-form').reset();
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
     await updateSelectors();
@@ -639,7 +663,7 @@ function setupEventListeners() {
     const pond = (await getAll('ponds')).find(p => p.id === pondId);
     if (pond) { pond.harvested = true; await update('ponds', pond); }
     
-    showMessage('harvest-message', '✅ Harvest record saved!', 'success');
+    showMessage('harvest-message', 'Harvest record saved!', 'success');
     document.getElementById('harvest-form').reset();
     document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
     document.getElementById('harvest-revenue').value = '';
@@ -676,7 +700,7 @@ function setupEventListeners() {
       createdAt: new Date().toISOString()
     };
     await add('tideLogs', tide);
-    showMessage('tide-message', '✅ Tide data saved!', 'success');
+    showMessage('tide-message', 'Tide data saved!', 'success');
   });
 
   // --- ANALYSIS POND SELECTOR ---
@@ -701,6 +725,29 @@ function setupEventListeners() {
     localStorage.setItem('theme', 'dark');
   });
 
+  // --- LOAD SAMPLE DATA ---
+  document.getElementById('load-sample-data')?.addEventListener('click', async () => {
+    if (confirm('Load sample data? This will add a demo pond with 60 days of logs.')) {
+      await loadSampleData();
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', 'Sample data loaded! Check the Dashboard.', 'success');
+    }
+  });
+
+  // --- EXPORT CSV ---
+  document.getElementById('export-csv')?.addEventListener('click', async () => {
+    const logs = await getAll('dailyLogs');
+    if (logs.length === 0) {
+      showMessage('log-message', 'No data to export.', 'error');
+      return;
+    }
+    exportToCSV(logs, 'fishpond-logs');
+  });
+
+  // --- PRINT REPORT ---
+  document.getElementById('print-report')?.addEventListener('click', printReport);
+
   // --- EXPORT DATA ---
   document.getElementById('export-data')?.addEventListener('click', async () => {
     const data = await exportAllData();
@@ -712,7 +759,7 @@ function setupEventListeners() {
     a.click();
     URL.revokeObjectURL(url);
     localStorage.setItem('lastExportDate', new Date().toISOString());
-    showMessage('log-message', '✅ Data exported!', 'success');
+    showMessage('log-message', 'Data exported! Last export date saved.', 'success');
   });
 
   // --- IMPORT DATA ---
@@ -728,23 +775,23 @@ function setupEventListeners() {
       await importAllData(data);
       await renderPondList();
       await updateSelectors();
-      showMessage('log-message', '✅ Data imported successfully!', 'success');
+      showMessage('log-message', 'Data imported successfully!', 'success');
     } catch (err) {
-      showMessage('log-message', '❌ Invalid file format.', 'error');
+      showMessage('log-message', 'Invalid file format.', 'error');
     }
     e.target.value = '';
   });
 
   // --- CLEAR DATA ---
   document.getElementById('clear-data')?.addEventListener('click', async () => {
-    if (confirm('⚠️ Delete ALL data? This cannot be undone.')) {
+    if (confirm('Delete ALL data? This cannot be undone.')) {
       await clearStore('ponds');
       await clearStore('dailyLogs');
       await clearStore('harvests');
       await clearStore('tideLogs');
       await renderPondList();
       await updateSelectors();
-      showMessage('log-message', '🗑️ All data cleared.', 'info');
+      showMessage('log-message', 'All data cleared.', 'info');
     }
   });
 }
