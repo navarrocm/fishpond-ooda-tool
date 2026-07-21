@@ -2,7 +2,7 @@
 // UTILITIES - Shared Functions
 // ============================================================
 
-// ---- HTML Escape (Prevents XSS) ----
+// ---- HTML Escape ----
 export function escapeHtml(str) {
   if (!str) return '';
   const map = {
@@ -15,19 +15,27 @@ export function escapeHtml(str) {
   return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-// ---- Validate Number (Returns null if invalid) ----
+// ---- Validate Number ----
 export function validateNumber(val, fallback = null) {
   const num = parseFloat(val);
   return isNaN(num) ? fallback : num;
 }
 
-// ---- Validate Integer (Returns null if invalid) ----
+// ---- Validate Integer ----
 export function validateInt(val, fallback = null) {
   const num = parseInt(val);
   return isNaN(num) ? fallback : num;
 }
 
-// ---- Safe Date (Returns ISO string or null) ----
+// ---- Validate Range (NEW - Fixes the error) ----
+export function validateRange(value, min, max, fallback = null) {
+  const num = validateNumber(value, fallback);
+  if (num === null) return fallback;
+  if (num < min || num > max) return fallback;
+  return num;
+}
+
+// ---- Safe Date ----
 export function safeDate(val) {
   if (!val) return null;
   const d = new Date(val);
