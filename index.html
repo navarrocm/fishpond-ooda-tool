@@ -7,7 +7,7 @@
   
   <!-- ABSOLUTE PATHS FOR GITHUB PAGES -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
-  <meta name="theme-color" content="#1a5f7a">
+  <meta name="theme-color" content="#1a2a3a">
   <meta name="description" content="Smart decision support for fishpond operators">
   
   <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
@@ -16,19 +16,20 @@
   <div id="app">
     <!-- HEADER -->
     <header id="app-header">
-      <h1>🐟 Fishpond OODA</h1>
-      <span id="online-status" class="online">● Online</span>
+      <h1>Fishpond OODA Tool</h1>
+      <span id="online-status" class="online">Online</span>
     </header>
 
     <!-- TAB NAVIGATION -->
     <nav id="tab-nav">
-      <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
-      <button class="tab-btn" data-tab="log">📝 Log</button>
-      <button class="tab-btn" data-tab="harvest">🌾 Harvest</button>
-      <button class="tab-btn" data-tab="tide">🌊 Tide</button>
-      <button class="tab-btn" data-tab="analysis">📈 Analysis</button>
-      <button class="tab-btn" data-tab="decide">🧠 Decide</button>
-      <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+      <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="log">Log Entry</button>
+      <button class="tab-btn" data-tab="harvest">Harvest</button>
+      <button class="tab-btn" data-tab="tide">Tide</button>
+      <button class="tab-btn" data-tab="analysis">Analysis</button>
+      <button class="tab-btn" data-tab="decide">Decide</button>
+      <button class="tab-btn" data-tab="help">Help</button>
+      <button class="tab-btn" data-tab="settings">Settings</button>
     </nav>
 
     <!-- CONTENT -->
@@ -38,7 +39,7 @@
       <section id="dashboard" class="tab-panel active">
         <div class="panel-header">
           <h2>Your Ponds</h2>
-          <button id="add-pond-btn" class="primary-btn">+ Add Pond</button>
+          <button id="add-pond-btn" class="primary-btn">Add Pond</button>
         </div>
         <div id="pond-list" class="pond-grid"></div>
         <div id="pond-detail" style="display:none;"></div>
@@ -47,7 +48,7 @@
       <!-- ===== LOG ENTRY ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
-          <h2>📝 Daily Log Entry</h2>
+          <h2>Daily Log Entry</h2>
           <span id="log-pond-name">Select a pond first</span>
         </div>
         <form id="log-form" novalidate>
@@ -117,10 +118,10 @@
             <div class="form-group">
               <label for="log-weather">Weather</label>
               <select id="log-weather">
-                <option value="Sunny">☀️ Sunny</option>
-                <option value="Rainy">🌧️ Rainy</option>
-                <option value="Cloudy">⛅ Cloudy</option>
-                <option value="Stormy">⛈️ Stormy</option>
+                <option value="Sunny">Sunny</option>
+                <option value="Rainy">Rainy</option>
+                <option value="Cloudy">Cloudy</option>
+                <option value="Stormy">Stormy</option>
               </select>
             </div>
             <div class="form-group">
@@ -132,7 +133,7 @@
             <label for="log-notes">Notes</label>
             <input type="text" id="log-notes" placeholder="Observations...">
           </div>
-          <button type="submit" class="primary-btn">💾 Save Log</button>
+          <button type="submit" class="primary-btn">Save Log</button>
         </form>
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
@@ -140,7 +141,7 @@
       <!-- ===== HARVEST ENTRY ===== -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
-          <h2>🌾 Harvest Entry</h2>
+          <h2>Harvest Entry</h2>
           <span id="harvest-pond-name">Select a pond first</span>
         </div>
         <form id="harvest-form" novalidate>
@@ -178,7 +179,7 @@
             <label for="harvest-notes">Notes</label>
             <input type="text" id="harvest-notes" placeholder="Quality, issues...">
           </div>
-          <button type="submit" class="primary-btn">💾 Save Harvest</button>
+          <button type="submit" class="primary-btn">Save Harvest</button>
         </form>
         <div id="harvest-list" style="margin-top:16px;"></div>
         <div id="harvest-message" class="message" style="display:none;"></div>
@@ -187,43 +188,43 @@
       <!-- ===== TIDE ===== -->
       <section id="tide" class="tab-panel">
         <div style="max-width:800px;margin:0 auto;padding:0 12px;">
-          <div style="background:#1a5f7a;border-radius:16px;padding:30px;margin-bottom:20px;text-align:center;color:#fff;">
-            <h1 style="font-size:2rem;">🌊 Tide Predictions</h1>
+          <div style="background:#1a2a3a;border-radius:16px;padding:30px;margin-bottom:20px;text-align:center;color:#fff;">
+            <h1 style="font-size:2rem;">Tide Predictions</h1>
             <p style="font-size:1.2rem;">Visit NAMRIA for official tide forecasts</p>
           </div>
-          <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:6px solid #f39c12;margin-bottom:20px;">
-            <h2>📡 Get Official Tide Data</h2>
+          <div style="background:var(--card-bg);border-radius:16px;padding:24px;box-shadow:var(--shadow);border-left:6px solid #f39c12;margin-bottom:20px;">
+            <h2>Get Official Tide Data</h2>
             <p>NAMRIA provides official tide predictions for the Philippines.</p>
-            <a href="https://www.namria.gov.ph/#gsc.tab=0" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 24px;background:#1a5f7a;color:#fff;font-weight:700;border-radius:10px;text-decoration:none;margin-top:8px;">🔗 namria.gov.ph</a>
+            <a href="https://www.namria.gov.ph/#gsc.tab=0" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 24px;background:#1a5f7a;color:#fff;font-weight:700;border-radius:10px;text-decoration:none;margin-top:8px;">Visit namria.gov.ph</a>
           </div>
-          <div style="background:#fff;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.08);border-left:6px solid #2ecc71;">
-            <h2>📝 Manual Tide Entry</h2>
+          <div style="background:var(--card-bg);border-radius:16px;padding:24px;box-shadow:var(--shadow);border-left:6px solid #2ecc71;">
+            <h2>Manual Tide Entry</h2>
             <form id="tide-form">
               <div style="margin-bottom:12px;">
                 <label for="tide-date" style="display:block;font-weight:600;">Date *</label>
-                <input type="date" id="tide-date" required style="width:100%;padding:10px;border:1px solid #dce4ec;border-radius:8px;">
+                <input type="date" id="tide-date" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
                   <label for="tide-high" style="display:block;font-weight:600;">High Tide (m)</label>
-                  <input type="number" id="tide-high" step="0.01" placeholder="1.2" style="width:100%;padding:10px;border:1px solid #dce4ec;border-radius:8px;">
+                  <input type="number" id="tide-high" step="0.01" placeholder="1.2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
                 <div>
                   <label for="tide-high-time" style="display:block;font-weight:600;">High Tide Time</label>
-                  <input type="time" id="tide-high-time" style="width:100%;padding:10px;border:1px solid #dce4ec;border-radius:8px;">
+                  <input type="time" id="tide-high-time" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
                   <label for="tide-low" style="display:block;font-weight:600;">Low Tide (m)</label>
-                  <input type="number" id="tide-low" step="0.01" placeholder="0.3" style="width:100%;padding:10px;border:1px solid #dce4ec;border-radius:8px;">
+                  <input type="number" id="tide-low" step="0.01" placeholder="0.3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
                 <div>
                   <label for="tide-low-time" style="display:block;font-weight:600;">Low Tide Time</label>
-                  <input type="time" id="tide-low-time" style="width:100%;padding:10px;border:1px solid #dce4ec;border-radius:8px;">
+                  <input type="time" id="tide-low-time" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
               </div>
-              <button type="submit" style="padding:12px 24px;background:#2ecc71;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">💾 Save Tide Data</button>
+              <button type="submit" style="padding:12px 24px;background:#2ecc71;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Save Tide Data</button>
             </form>
             <div id="tide-message" class="message" style="display:none;"></div>
           </div>
@@ -233,7 +234,7 @@
       <!-- ===== ANALYSIS ===== -->
       <section id="analysis" class="tab-panel">
         <div class="panel-header">
-          <h2>📈 Analysis</h2>
+          <h2>Analysis</h2>
           <select id="analysis-pond">
             <option value="">Select a pond</option>
           </select>
@@ -243,10 +244,10 @@
         </div>
       </section>
 
-      <!-- ===== DECIDE (NEW TAB) ===== -->
+      <!-- ===== DECIDE ===== -->
       <section id="decide" class="tab-panel">
         <div class="panel-header">
-          <h2>🧠 Decision Support</h2>
+          <h2>Decision Support</h2>
           <select id="decide-pond">
             <option value="">Select a pond</option>
           </select>
@@ -256,35 +257,54 @@
         </div>
       </section>
 
+      <!-- ===== HELP ===== -->
+      <section id="help" class="tab-panel">
+        <div id="help-content">
+          <p style="color:var(--text-light);text-align:center;padding:40px 0;">Loading help content...</p>
+        </div>
+      </section>
+
       <!-- ===== SETTINGS ===== -->
       <section id="settings" class="tab-panel">
         <div class="panel-header">
-          <h2>⚙️ Settings</h2>
+          <h2>Settings</h2>
         </div>
         <div class="settings-section">
           <h3>Theme</h3>
           <div class="form-row">
-            <button id="theme-light" class="secondary-btn">☀️ Light</button>
-            <button id="theme-dark" class="secondary-btn">🌙 Dark</button>
+            <button id="theme-light" class="secondary-btn">Light</button>
+            <button id="theme-dark" class="secondary-btn">Dark</button>
           </div>
         </div>
         <div class="settings-section">
-          <h3>Data Management</h3>
+          <h3>Sample Data</h3>
+          <button id="load-sample-data" class="primary-btn">Load Sample Data</button>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Creates a demo pond with 60 days of logs for training.</p>
+        </div>
+        <div class="settings-section">
+          <h3>Export</h3>
           <div class="form-row">
-            <button id="export-data" class="secondary-btn">📤 Export Data (JSON)</button>
-            <button id="import-data" class="secondary-btn">📥 Import Data (JSON)</button>
+            <button id="export-data" class="secondary-btn">Export JSON (Backup)</button>
+            <button id="export-csv" class="secondary-btn">Export CSV (Logs)</button>
+            <button id="print-report" class="secondary-btn">Print Report</button>
+          </div>
+        </div>
+        <div class="settings-section">
+          <h3>Import / Restore</h3>
+          <div class="form-row">
+            <button id="import-data" class="secondary-btn">Import Data (JSON)</button>
             <input type="file" id="import-file" accept=".json" style="display:none;">
           </div>
-          <button id="clear-data" class="danger-btn">🗑️ Clear All Data</button>
+        </div>
+        <div class="settings-section">
+          <h3>Danger Zone</h3>
+          <button id="clear-data" class="danger-btn">Clear All Data</button>
         </div>
         <div class="settings-section">
           <h3>About</h3>
           <p><strong>Fishpond OODA Tool v3.0</strong></p>
           <p>Built for fishpond operators in the Philippines.</p>
           <p>Data stored locally in your browser.</p>
-          <p style="font-size:0.8rem;color:var(--text-light);margin-top:8px;">
-            💡 <strong>Data safety:</strong> Regularly export your data via Settings → Export Data.
-          </p>
         </div>
       </section>
     </main>
