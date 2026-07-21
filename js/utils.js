@@ -27,7 +27,7 @@ export function validateInt(val, fallback = null) {
   return isNaN(num) ? fallback : num;
 }
 
-// ---- Validate Range (NEW - Fixes the error) ----
+// ---- Validate Range (FIXES THE ERROR) ----
 export function validateRange(value, min, max, fallback = null) {
   const num = validateNumber(value, fallback);
   if (num === null) return fallback;
@@ -72,3 +72,6 @@ export function debounce(fn, delay = 300) {
 export function deepClone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
+
+// ---- Console log that file loaded ----
+console.log('📦 utils.js loaded with validateRange export');
