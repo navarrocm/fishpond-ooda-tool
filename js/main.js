@@ -22,14 +22,6 @@ import { escapeHtml, formatNumber, formatCurrency, validateNumber, validateInt }
 async function init() {
   await openDB();
   
-  // --- LOAD THEME ---
-  const savedTheme = localStorage.getItem('theme');
-  if (savedTheme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  } else {
-    document.documentElement.removeAttribute('data-theme');
-  }
-  
   // --- DATA PERSISTENCE ---
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(persistent => {
@@ -82,7 +74,6 @@ async function init() {
       if (data.ponds && data.ponds.length > 0) {
         e.preventDefault();
         e.returnValue = 'You have unsaved data. Please export your backup before leaving.';
-        // Auto-export in background
         const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -94,7 +85,7 @@ async function init() {
     }
   });
 
-  console.log('Fishpond OODA Tool v3.0 initialized!');
+  console.log('Fishpond OODA Tool v3.1 initialized!');
 }
 
 // ---- ONLINE STATUS ----
@@ -161,9 +152,9 @@ function renderCharts(pond, logs, harvests) {
       const fcr = cumulativeWeight > 0 ? Math.round((cumulativeFeed / cumulativeWeight) * 100) / 100 : 0;
       fcrValues.push(fcr);
     }
-    drawBarChart(ctx1, labels, fcrValues, 'FCR', '#1a5f7a', 1.5);
+    drawBarChart(ctx1, labels, fcrValues, 'FCR', '#2a7f9a', 1.5);
   } else {
-    ctx1.fillStyle = '#888';
+    ctx1.fillStyle = '#666';
     ctx1.font = '14px sans-serif';
     ctx1.textAlign = 'center';
     ctx1.fillText('Not enough data for FCR chart', fcrCanvas.width/2, fcrCanvas.height/2);
@@ -175,7 +166,7 @@ function renderCharts(pond, logs, harvests) {
     const growthValues = sortedLogs.map(l => validateNumber(l.weight, 0));
     drawLineChart(ctx2, labels, growthValues, 'Weight (g)', '#2ecc71');
   } else {
-    ctx2.fillStyle = '#888';
+    ctx2.fillStyle = '#666';
     ctx2.font = '14px sans-serif';
     ctx2.textAlign = 'center';
     ctx2.fillText('Not enough data for growth chart', growthCanvas.width/2, growthCanvas.height/2);
@@ -192,7 +183,7 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
   const barW = Math.min(chartW / values.length * 0.6, 30);
   const gap = chartW / values.length;
   
-  ctx.strokeStyle = '#ddd';
+  ctx.strokeStyle = '#2a2a4a';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + chartH - (i / 4) * chartH;
@@ -200,7 +191,7 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
     ctx.moveTo(pad.left, y);
     ctx.lineTo(w - pad.right, y);
     ctx.stroke();
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#8899aa';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText((maxVal * i / 4).toFixed(1), pad.left - 5, y + 3);
@@ -212,7 +203,7 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
     const y = pad.top + chartH - barH;
     ctx.fillStyle = values[i] > (targetLine || Infinity) ? '#e74c3c' : color;
     ctx.fillRect(x, y, barW, barH);
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#8899aa';
     ctx.font = '9px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(labels[i] || '', x + barW/2, h - pad.bottom + 15);
@@ -233,7 +224,7 @@ function drawBarChart(ctx, labels, values, label, color, targetLine) {
     ctx.textAlign = 'left';
     ctx.fillText('Target ' + targetLine, w - pad.right - 70, targetY - 5);
   }
-  ctx.fillStyle = '#888';
+  ctx.fillStyle = '#8899aa';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(label, w/2, h - 2);
@@ -249,7 +240,7 @@ function drawLineChart(ctx, labels, values, label, color) {
   const minVal = Math.min(...values, 0);
   const range = maxVal - minVal || 1;
   
-  ctx.strokeStyle = '#ddd';
+  ctx.strokeStyle = '#2a2a4a';
   ctx.lineWidth = 0.5;
   for (let i = 0; i <= 4; i++) {
     const y = pad.top + chartH - (i / 4) * chartH;
@@ -258,7 +249,7 @@ function drawLineChart(ctx, labels, values, label, color) {
     ctx.moveTo(pad.left, y);
     ctx.lineTo(w - pad.right, y);
     ctx.stroke();
-    ctx.fillStyle = '#888';
+    ctx.fillStyle = '#8899aa';
     ctx.font = '10px sans-serif';
     ctx.textAlign = 'right';
     ctx.fillText(val.toFixed(1), pad.left - 5, y + 3);
@@ -282,13 +273,13 @@ function drawLineChart(ctx, labels, values, label, color) {
       ctx.arc(x, y, 3, 0, 2 * Math.PI);
       ctx.fillStyle = color;
       ctx.fill();
-      ctx.fillStyle = '#888';
+      ctx.fillStyle = '#8899aa';
       ctx.font = '8px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(labels[i] || '', x, h - pad.bottom + 15);
     }
   }
-  ctx.fillStyle = '#888';
+  ctx.fillStyle = '#8899aa';
   ctx.font = '10px sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(label, w/2, h - 2);
@@ -333,13 +324,13 @@ function renderTrendAnalysis(pond, logs, harvests) {
   for (const m of metrics) {
     const direction = m.old !== null ? (m.recent - m.old) : 0;
     const arrow = direction > 0.05 ? '↑' : direction < -0.05 ? '↓' : '→';
-    const color = direction > 0.05 ? 'green' : direction < -0.05 ? 'red' : 'gray';
+    const color = direction > 0.05 ? '#2ecc71' : direction < -0.05 ? '#e74c3c' : '#8899aa';
     html += `
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);">
         <div style="font-size:0.75rem;color:var(--text-muted);">${m.label}</div>
-        <div style="font-size:1.2rem;font-weight:700;color:var(--primary);">
+        <div style="font-size:1.2rem;font-weight:700;color:var(--primary-light);">
           ${m.recent.toFixed(1)}${m.unit}
-          <span style="font-size:0.8rem;color:var(--${color});">${arrow}</span>
+          <span style="font-size:0.8rem;color:${color};">${arrow}</span>
         </div>
         ${m.old !== null ? `<div style="font-size:0.7rem;color:var(--text-muted);">Previous: ${m.old.toFixed(1)}${m.unit}</div>` : ''}
         <div style="font-size:0.7rem;color:var(--text-muted);">Target: ${m.target}</div>
@@ -361,7 +352,7 @@ function renderTrendAnalysis(pond, logs, harvests) {
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;">
         <div style="font-size:0.75rem;color:var(--text-muted);">Feed Cost</div>
-        <div style="font-size:1.2rem;font-weight:700;color:var(--primary);">${feedPercent}%</div>
+        <div style="font-size:1.2rem;font-weight:700;color:var(--primary-light);">${feedPercent}%</div>
         <div style="font-size:0.7rem;color:var(--text-muted);">of total operating cost</div>
       </div>
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;">
@@ -407,7 +398,7 @@ function renderBreakEvenSensitivity(pond, logs, harvests) {
     html += `
       <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);text-align:center;border-left:4px solid ${color};">
         <div style="font-size:0.75rem;color:var(--text-muted);">${s.label}</div>
-        <div style="font-size:1.1rem;font-weight:700;color:var(--primary);">₱${s.price}/kg</div>
+        <div style="font-size:1.1rem;font-weight:700;color:var(--primary-light);">₱${s.price}/kg</div>
         <div style="font-size:0.9rem;color:${color};font-weight:600;">${emoji} ${formatCurrency(profit)}</div>
         <div style="font-size:0.7rem;color:var(--text-muted);">Break-even: ₱${breakEven.toFixed(2)}/kg</div>
       </div>
@@ -713,16 +704,6 @@ function setupEventListeners() {
   document.getElementById('decide-pond')?.addEventListener('change', async (e) => {
     const pondId = e.target.value;
     await renderDecide(pondId);
-  });
-
-  // --- THEME ---
-  document.getElementById('theme-light')?.addEventListener('click', () => {
-    document.documentElement.removeAttribute('data-theme');
-    localStorage.setItem('theme', 'light');
-  });
-  document.getElementById('theme-dark')?.addEventListener('click', () => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    localStorage.setItem('theme', 'dark');
   });
 
   // --- LOAD SAMPLE DATA ---
