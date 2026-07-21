@@ -7,7 +7,7 @@
   
   <!-- ABSOLUTE PATHS FOR GITHUB PAGES -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
-  <meta name="theme-color" content="#1a2a3a">
+  <meta name="theme-color" content="#1a1a2e">
   <meta name="description" content="Smart decision support for fishpond operators">
   
   <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
@@ -188,43 +188,43 @@
       <!-- ===== TIDE ===== -->
       <section id="tide" class="tab-panel">
         <div style="max-width:800px;margin:0 auto;padding:0 12px;">
-          <div style="background:#1a2a3a;border-radius:16px;padding:30px;margin-bottom:20px;text-align:center;color:#fff;">
-            <h1 style="font-size:2rem;">Tide Predictions</h1>
-            <p style="font-size:1.2rem;">Visit NAMRIA for official tide forecasts</p>
+          <div style="background:#1a2a3a;border-radius:16px;padding:30px;margin-bottom:20px;text-align:center;border:1px solid #2a2a4a;">
+            <h1 style="font-size:2rem;color:#d4d4e8;">Tide Predictions</h1>
+            <p style="font-size:1.2rem;color:#8899aa;">Visit NAMRIA for official tide forecasts</p>
           </div>
           <div style="background:var(--card-bg);border-radius:16px;padding:24px;box-shadow:var(--shadow);border-left:6px solid #f39c12;margin-bottom:20px;">
-            <h2>Get Official Tide Data</h2>
-            <p>NAMRIA provides official tide predictions for the Philippines.</p>
+            <h2 style="color:#d4d4e8;">Get Official Tide Data</h2>
+            <p style="color:#8899aa;">NAMRIA provides official tide predictions for the Philippines.</p>
             <a href="https://www.namria.gov.ph/#gsc.tab=0" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:12px 24px;background:#1a5f7a;color:#fff;font-weight:700;border-radius:10px;text-decoration:none;margin-top:8px;">Visit namria.gov.ph</a>
           </div>
           <div style="background:var(--card-bg);border-radius:16px;padding:24px;box-shadow:var(--shadow);border-left:6px solid #2ecc71;">
-            <h2>Manual Tide Entry</h2>
+            <h2 style="color:#d4d4e8;">Manual Tide Entry</h2>
             <form id="tide-form">
               <div style="margin-bottom:12px;">
-                <label for="tide-date" style="display:block;font-weight:600;">Date *</label>
+                <label for="tide-date" style="display:block;font-weight:600;color:#aab;">Date *</label>
                 <input type="date" id="tide-date" required style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
-                  <label for="tide-high" style="display:block;font-weight:600;">High Tide (m)</label>
+                  <label for="tide-high" style="display:block;font-weight:600;color:#aab;">High Tide (m)</label>
                   <input type="number" id="tide-high" step="0.01" placeholder="1.2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
                 <div>
-                  <label for="tide-high-time" style="display:block;font-weight:600;">High Tide Time</label>
+                  <label for="tide-high-time" style="display:block;font-weight:600;color:#aab;">High Tide Time</label>
                   <input type="time" id="tide-high-time" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
                 <div>
-                  <label for="tide-low" style="display:block;font-weight:600;">Low Tide (m)</label>
+                  <label for="tide-low" style="display:block;font-weight:600;color:#aab;">Low Tide (m)</label>
                   <input type="number" id="tide-low" step="0.01" placeholder="0.3" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
                 <div>
-                  <label for="tide-low-time" style="display:block;font-weight:600;">Low Tide Time</label>
+                  <label for="tide-low-time" style="display:block;font-weight:600;color:#aab;">Low Tide Time</label>
                   <input type="time" id="tide-low-time" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
                 </div>
               </div>
-              <button type="submit" style="padding:12px 24px;background:#2ecc71;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Save Tide Data</button>
+              <button type="submit" style="padding:12px 24px;background:#2ecc71;color:#1a1a2e;border:none;border-radius:8px;font-weight:600;cursor:pointer;">Save Tide Data</button>
             </form>
             <div id="tide-message" class="message" style="display:none;"></div>
           </div>
@@ -292,32 +292,4 @@
         <div class="settings-section">
           <h3>Import / Restore</h3>
           <div class="form-row">
-            <button id="import-data" class="secondary-btn">Import Data (JSON)</button>
-            <input type="file" id="import-file" accept=".json" style="display:none;">
-          </div>
-        </div>
-        <div class="settings-section">
-          <h3>Danger Zone</h3>
-          <button id="clear-data" class="danger-btn">Clear All Data</button>
-        </div>
-        <div class="settings-section">
-          <h3>About</h3>
-          <p><strong>Fishpond OODA Tool v3.0</strong></p>
-          <p>Built for fishpond operators in the Philippines.</p>
-          <p>Data stored locally in your browser.</p>
-        </div>
-      </section>
-    </main>
-
-    <!-- MODAL -->
-    <div id="modal" class="modal" style="display:none;">
-      <div class="modal-content">
-        <span class="modal-close">&times;</span>
-        <div id="modal-body"></div>
-      </div>
-    </div>
-  </div>
-
-  <script type="module" src="/fishpond-ooda-tool/js/main.js"></script>
-</body>
-</html>
+            <button id="import-data" class="secondary-btn">Import Data
