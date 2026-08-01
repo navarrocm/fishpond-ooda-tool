@@ -23,6 +23,7 @@
     <!-- TAB NAVIGATION -->
     <nav id="tab-nav">
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+      <button class="tab-btn" data-tab="prep">Prep</button>
       <button class="tab-btn" data-tab="log">Log Entry</button>
       <button class="tab-btn" data-tab="harvest">Harvest</button>
       <button class="tab-btn" data-tab="tide">Tide</button>
@@ -45,6 +46,19 @@
         <div id="pond-detail" style="display:none;"></div>
       </section>
 
+      <!-- ===== PREP (NEW) ===== -->
+      <section id="prep" class="tab-panel">
+        <div class="panel-header">
+          <h2>Pond Preparation</h2>
+          <select id="prep-pond">
+            <option value="">Select a pond</option>
+          </select>
+        </div>
+        <div id="prep-content">
+          <p style="color:var(--text-light);text-align:center;padding:40px 0;">Select a pond to start preparation tracking.</p>
+        </div>
+      </section>
+
       <!-- ===== LOG ENTRY ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
@@ -60,6 +74,18 @@
             <div class="form-group">
               <label for="log-date">Date *</label>
               <input type="date" id="log-date" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-doc">Day of Culture (DOC)</label>
+              <input type="number" id="log-doc" min="0" step="1" placeholder="e.g., 45">
+              <span class="hint">Days since stocking</span>
+            </div>
+            <div class="form-group">
+              <label for="log-time">Measurement Time</label>
+              <input type="time" id="log-time" value="08:00">
+              <span class="hint">Morning readings are most consistent</span>
             </div>
           </div>
           <div class="form-row">
@@ -84,6 +110,33 @@
             <div class="form-group">
               <label for="log-ammonia">Ammonia (ppm) *</label>
               <input type="number" id="log-ammonia" step="0.01" required placeholder="<0.5">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-nitrate">Nitrate (NO₃) ppm</label>
+              <input type="number" id="log-nitrate" step="0.01" placeholder="< 50 ppm">
+              <span class="hint">Safe: &lt; 50 ppm</span>
+            </div>
+            <div class="form-group">
+              <label for="log-nitrite">Nitrite (NO₂) ppm</label>
+              <input type="number" id="log-nitrite" step="0.01" placeholder="< 0.5 ppm">
+              <span class="hint danger">Toxic: &gt; 0.5 ppm</span>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="log-tank">Tank/Section (optional)</label>
+              <input type="text" id="log-tank" placeholder="e.g., Tank A, Section 1">
+            </div>
+            <div class="form-group">
+              <label for="log-weather">Weather</label>
+              <select id="log-weather">
+                <option value="Sunny">Sunny</option>
+                <option value="Rainy">Rainy</option>
+                <option value="Cloudy">Cloudy</option>
+                <option value="Stormy">Stormy</option>
+              </select>
             </div>
           </div>
           <div class="form-row">
@@ -115,15 +168,6 @@
             </div>
           </div>
           <div class="form-row">
-            <div class="form-group">
-              <label for="log-weather">Weather</label>
-              <select id="log-weather">
-                <option value="Sunny">Sunny</option>
-                <option value="Rainy">Rainy</option>
-                <option value="Cloudy">Cloudy</option>
-                <option value="Stormy">Stormy</option>
-              </select>
-            </div>
             <div class="form-group">
               <label for="log-weight">Sample Weight (g)</label>
               <input type="number" id="log-weight" step="0.1" placeholder="e.g., 150">
@@ -295,7 +339,7 @@
         </div>
         <div class="settings-section">
           <h3>About</h3>
-          <p><strong>Fishpond OODA Tool v3.1</strong></p>
+          <p><strong>Fishpond OODA Tool v4.0</strong></p>
           <p>Built for fishpond operators in the Philippines.</p>
           <p>Data stored locally in your browser.</p>
           <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">
