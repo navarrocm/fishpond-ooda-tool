@@ -8,9 +8,10 @@ import { getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesC
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 
 // ============================================================
-// EXPORT DECLARATIONS (EVERYTHING EXPLICITLY EXPORTED)
+// EXPORT ALL FUNCTIONS (DECLARED AT TOP FOR CLARITY)
 // ============================================================
 
+// ---- Tab Navigation ----
 export function showTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -20,6 +21,7 @@ export function showTab(tabId) {
   if (btn) btn.classList.add('active');
 }
 
+// ---- Messages ----
 export function showMessage(target, message, type = 'success') {
   const el = document.getElementById(target);
   if (!el) return;
@@ -30,6 +32,7 @@ export function showMessage(target, message, type = 'success') {
   }, 5000);
 }
 
+// ---- Render Pond List ----
 export async function renderPondList() {
   const container = document.getElementById('pond-list');
   if (!container) return;
@@ -79,6 +82,7 @@ export async function renderPondList() {
   });
 }
 
+// ---- Show Pond Detail ----
 export async function showPondDetail(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -123,6 +127,7 @@ export async function showPondDetail(pondId) {
   `;
 }
 
+// ---- Show Add Pond Modal ----
 export function showAddPondModal() {
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
@@ -282,6 +287,7 @@ export function showAddPondModal() {
   });
 }
 
+// ---- Edit Pond ----
 export async function editPond(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -453,6 +459,7 @@ export async function editPond(pondId) {
   });
 }
 
+// ---- Update Selectors ----
 export async function updateSelectors() {
   const ponds = await getAll('ponds');
   const selectors = ['log-pond', 'harvest-pond', 'analysis-pond', 'decide-pond', 'prep-pond'];
@@ -482,6 +489,7 @@ export async function updateSelectors() {
   }
 }
 
+// ---- Render Harvest List ----
 export async function renderHarvestList(pondId) {
   const container = document.getElementById('harvest-list');
   if (!container) return;
@@ -514,6 +522,7 @@ export async function renderHarvestList(pondId) {
   `).join('');
 }
 
+// ---- Render Analysis ----
 export async function renderAnalysis(pondId) {
   const container = document.getElementById('analysis-content');
   if (!pondId) {
@@ -554,6 +563,7 @@ export async function renderAnalysis(pondId) {
   container.innerHTML = html;
 }
 
+// ---- Render Decide ----
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
@@ -598,6 +608,7 @@ export async function renderDecide(pondId) {
   container.innerHTML = html;
 }
 
+// ---- Render Help ----
 export function renderHelp() {
   const container = document.getElementById('help-content');
   if (!container) return;
@@ -631,6 +642,7 @@ export function renderHelp() {
   `;
 }
 
+// ---- Export CSV ----
 export function exportToCSV(data, filename) {
   if (!data || data.length === 0) {
     showMessage('log-message', 'No data to export.', 'error');
@@ -649,6 +661,7 @@ export function exportToCSV(data, filename) {
   showMessage('log-message', 'CSV exported!', 'success');
 }
 
+// ---- Print Report ----
 export function printReport() {
   window.print();
 }
@@ -661,6 +674,22 @@ export async function deleteLog(logId) {
   showMessage('log-message', 'Log deleted.', 'info');
 }
 
+// ---- Delete Harvest ----
+window.deleteHarvest = async function(harvestId) {
+  if (!confirm('Delete this harvest record?')) return;
+  await remove('harvests', harvestId);
+  const harvestPond = document.getElementById('harvest-pond');
+  if (harvestPond) await renderHarvestList(harvestPond.value);
+  await renderPondList();
+  showMessage('harvest-message', 'Harvest record deleted.', 'info');
+};
+
+// ---- Edit Harvest ----
+window.editHarvest = async function(harvestId) {
+  // Simplified - just alert for now
+  alert('Edit harvest: Click the edit button on a harvest record to modify it.');
+};
+
 // ---- Expose functions to window ----
 window.editPond = editPond;
 window.deleteLog = deleteLog;
@@ -669,3 +698,12 @@ window.deleteHarvest = window.deleteHarvest;
 window.editHarvest = window.editHarvest;
 window.printReport = printReport;
 window.showMessage = showMessage;
+window.renderPondList = renderPondList;
+window.updateSelectors = updateSelectors;
+window.renderHarvestList = renderHarvestList;
+window.renderAnalysis = renderAnalysis;
+window.renderDecide = renderDecide;
+window.renderHelp = renderHelp;
+
+// ---- Log that UI is loaded ----
+console.log('✅ ui.js loaded with all exports');
