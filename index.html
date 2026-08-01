@@ -4,23 +4,18 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
-  
-  <!-- ABSOLUTE PATHS FOR GITHUB PAGES -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="description" content="Smart decision support for fishpond operators">
-  
   <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
 </head>
 <body>
   <div id="app">
-    <!-- HEADER -->
     <header id="app-header">
       <h1>Fishpond OODA Tool</h1>
       <span id="online-status" class="online">Online</span>
     </header>
 
-    <!-- TAB NAVIGATION -->
     <nav id="tab-nav">
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
       <button class="tab-btn" data-tab="prep">Prep</button>
@@ -33,7 +28,6 @@
       <button class="tab-btn" data-tab="settings">Settings</button>
     </nav>
 
-    <!-- CONTENT -->
     <main id="tab-content">
       
       <!-- ===== DASHBOARD ===== -->
@@ -46,7 +40,7 @@
         <div id="pond-detail" style="display:none;"></div>
       </section>
 
-      <!-- ===== PREP (NEW) ===== -->
+      <!-- ===== PREP ===== -->
       <section id="prep" class="tab-panel">
         <div class="panel-header">
           <h2>Pond Preparation</h2>
@@ -59,13 +53,14 @@
         </div>
       </section>
 
-      <!-- ===== LOG ENTRY ===== -->
+      <!-- ===== LOG ENTRY (Multi-Species) ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
           <h2>Daily Log Entry</h2>
           <span id="log-pond-name">Select a pond first</span>
         </div>
         <form id="log-form" novalidate>
+          <!-- Pond & Date -->
           <div class="form-row">
             <div class="form-group">
               <label for="log-pond">Pond *</label>
@@ -76,113 +71,82 @@
               <input type="date" id="log-date" required>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-doc">Day of Culture (DOC)</label>
-              <input type="number" id="log-doc" min="0" step="1" placeholder="e.g., 45">
-              <span class="hint">Days since stocking</span>
+
+          <!-- Water Quality (Shared) -->
+          <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;">
+            <h4 style="margin-bottom:8px;color:var(--primary-light);">🌊 Water Parameters (Shared)</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="log-temp">Temperature (°C) *</label>
+                <input type="number" id="log-temp" step="0.1" required placeholder="27-30">
+              </div>
+              <div class="form-group">
+                <label for="log-ph">pH *</label>
+                <input type="number" id="log-ph" step="0.1" required placeholder="7.5-8.5">
+              </div>
+              <div class="form-group">
+                <label for="log-salinity">Salinity (ppt) *</label>
+                <input type="number" id="log-salinity" step="0.1" required placeholder="20-30">
+              </div>
             </div>
-            <div class="form-group">
-              <label for="log-time">Measurement Time</label>
-              <input type="time" id="log-time" value="08:00">
-              <span class="hint">Morning readings are most consistent</span>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="log-do">DO (ppm) *</label>
+                <input type="number" id="log-do" step="0.1" required placeholder=">5">
+              </div>
+              <div class="form-group">
+                <label for="log-ammonia">Ammonia (ppm) *</label>
+                <input type="number" id="log-ammonia" step="0.01" required placeholder="<0.5">
+              </div>
             </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-temp">Temperature (°C) *</label>
-              <input type="number" id="log-temp" step="0.1" required placeholder="27-30">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="log-nitrate">Nitrate (ppm)</label>
+                <input type="number" id="log-nitrate" step="0.01" placeholder="< 50">
+              </div>
+              <div class="form-group">
+                <label for="log-nitrite">Nitrite (ppm)</label>
+                <input type="number" id="log-nitrite" step="0.01" placeholder="< 0.5">
+              </div>
             </div>
-            <div class="form-group">
-              <label for="log-ph">pH *</label>
-              <input type="number" id="log-ph" step="0.1" required placeholder="7.5-8.5">
-            </div>
-            <div class="form-group">
-              <label for="log-salinity">Salinity (ppt) *</label>
-              <input type="number" id="log-salinity" step="0.1" required placeholder="20-30">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-do">Dissolved Oxygen (ppm) *</label>
-              <input type="number" id="log-do" step="0.1" required placeholder=">5">
-            </div>
-            <div class="form-group">
-              <label for="log-ammonia">Ammonia (ppm) *</label>
-              <input type="number" id="log-ammonia" step="0.01" required placeholder="<0.5">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-nitrate">Nitrate (NO₃) ppm</label>
-              <input type="number" id="log-nitrate" step="0.01" placeholder="< 50 ppm">
-              <span class="hint">Safe: &lt; 50 ppm</span>
-            </div>
-            <div class="form-group">
-              <label for="log-nitrite">Nitrite (NO₂) ppm</label>
-              <input type="number" id="log-nitrite" step="0.01" placeholder="< 0.5 ppm">
-              <span class="hint danger">Toxic: &gt; 0.5 ppm</span>
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-tank">Tank/Section (optional)</label>
-              <input type="text" id="log-tank" placeholder="e.g., Tank A, Section 1">
-            </div>
-            <div class="form-group">
-              <label for="log-weather">Weather</label>
-              <select id="log-weather">
-                <option value="Sunny">Sunny</option>
-                <option value="Rainy">Rainy</option>
-                <option value="Cloudy">Cloudy</option>
-                <option value="Stormy">Stormy</option>
-              </select>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="log-time">Measurement Time</label>
+                <input type="time" id="log-time" value="08:00">
+              </div>
+              <div class="form-group">
+                <label for="log-weather">Weather</label>
+                <select id="log-weather">
+                  <option value="Sunny">Sunny</option>
+                  <option value="Rainy">Rainy</option>
+                  <option value="Cloudy">Cloudy</option>
+                  <option value="Stormy">Stormy</option>
+                </select>
+              </div>
             </div>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-feed-type">Feed Type</label>
-              <select id="log-feed-type">
-                <option value="Starter">Starter</option>
-                <option value="Grower" selected>Grower</option>
-                <option value="Finisher">Finisher</option>
-              </select>
+
+          <!-- Species Logs Container -->
+          <div id="species-logs-container">
+            <h4 style="margin-bottom:8px;color:var(--primary-light);">🐟 Species Data</h4>
+            <div id="species-log-entries">
+              <!-- Species log entries will be dynamically added -->
             </div>
-            <div class="form-group">
-              <label for="log-feed-amount">Feed Amount (kg) *</label>
-              <input type="number" id="log-feed-amount" step="0.1" required>
-            </div>
-            <div class="form-group">
-              <label for="log-feed-cost">Feed Cost (₱) *</label>
-              <input type="number" id="log-feed-cost" step="1" required>
-            </div>
+            <button type="button" id="add-species-log-btn" class="secondary-btn" style="margin-top:8px;width:100%;">+ Add Species Log</button>
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-mortality">Mortality (count)</label>
-              <input type="number" id="log-mortality" value="0" min="0">
-            </div>
-            <div class="form-group">
-              <label for="log-cause">Cause</label>
-              <input type="text" id="log-cause" placeholder="e.g., disease">
-            </div>
-          </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label for="log-weight">Sample Weight (g)</label>
-              <input type="number" id="log-weight" step="0.1" placeholder="e.g., 150">
-            </div>
-          </div>
-          <div class="form-group">
-            <label for="log-notes">Notes</label>
+
+          <!-- Notes -->
+          <div class="form-group" style="margin-top:12px;">
+            <label for="log-notes">General Notes</label>
             <input type="text" id="log-notes" placeholder="Observations...">
           </div>
-          <button type="submit" class="primary-btn">Save Log</button>
+
+          <button type="submit" class="primary-btn" style="margin-top:12px;width:100%;">Save Log</button>
         </form>
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== HARVEST ENTRY ===== -->
+      <!-- ===== HARVEST ===== -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
           <h2>Harvest Entry</h2>
@@ -195,6 +159,14 @@
               <select id="harvest-pond" required></select>
             </div>
             <div class="form-group">
+              <label for="harvest-species">Species *</label>
+              <select id="harvest-species" required>
+                <option value="">Select species</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
               <label for="harvest-date">Harvest Date *</label>
               <input type="date" id="harvest-date" required>
             </div>
@@ -202,7 +174,7 @@
           <div class="form-row">
             <div class="form-group">
               <label for="harvest-weight">Total Weight (kg) *</label>
-              <input type="number" id="harvest-weight" step="0.1" required placeholder="e.g., 1200">
+              <input type="number" id="harvest-weight" step="0.1" required placeholder="e.g., 850">
             </div>
             <div class="form-group">
               <label for="harvest-price">Price (₱/kg) *</label>
@@ -223,7 +195,7 @@
             <label for="harvest-notes">Notes</label>
             <input type="text" id="harvest-notes" placeholder="Quality, issues...">
           </div>
-          <button type="submit" class="primary-btn">Save Harvest</button>
+          <button type="submit" class="primary-btn" style="width:100%;margin-top:10px;">Save Harvest</button>
         </form>
         <div id="harvest-list" style="margin-top:16px;"></div>
         <div id="harvest-message" class="message" style="display:none;"></div>
@@ -316,7 +288,7 @@
         <div class="settings-section">
           <h3>Sample Data</h3>
           <button id="load-sample-data" class="primary-btn">Load Sample Data</button>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Creates a demo pond with 60 days of logs for training.</p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Creates a demo pond with multiple species.</p>
         </div>
         <div class="settings-section">
           <h3>Export</h3>
@@ -339,12 +311,10 @@
         </div>
         <div class="settings-section">
           <h3>About</h3>
-          <p><strong>Fishpond OODA Tool v4.0</strong></p>
-          <p>Built for fishpond operators in the Philippines.</p>
+          <p><strong>Fishpond OODA Tool v5.0</strong></p>
+          <p>Multi-species polyculture support.</p>
           <p>Data stored locally in your browser.</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">
-            💡 <strong>Data safety:</strong> Regularly export your data to keep a backup.
-          </p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">💡 <strong>Data safety:</strong> Regularly export your data.</p>
         </div>
       </section>
     </main>
