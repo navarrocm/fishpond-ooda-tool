@@ -3,16 +3,14 @@
 // ============================================================
 
 import { getAll, getByIndex, add, update, remove, getById, exportAllData } from './db.js';
-import { getPondStatus, generateRecommendations, getPhase } from './ooda.js';
-import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
-import { renderPrep } from './prep.js';
+import { getSpeciesTotals, getSpeciesLogFromEntry } from './db.js';
 import { getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor } from './species.js';
+import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 
 // ============================================================
-// EXPORT ALL FUNCTIONS
+// EXPORT DECLARATIONS (EVERYTHING EXPLICITLY EXPORTED)
 // ============================================================
 
-// ---- Tab Navigation ----
 export function showTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -22,7 +20,6 @@ export function showTab(tabId) {
   if (btn) btn.classList.add('active');
 }
 
-// ---- Messages ----
 export function showMessage(target, message, type = 'success') {
   const el = document.getElementById(target);
   if (!el) return;
@@ -33,7 +30,6 @@ export function showMessage(target, message, type = 'success') {
   }, 5000);
 }
 
-// ---- Render Pond List ----
 export async function renderPondList() {
   const container = document.getElementById('pond-list');
   if (!container) return;
@@ -51,9 +47,6 @@ export async function renderPondList() {
     const speciesList = pond.species ? pond.species.map(s => getSpeciesName(s.speciesId)).join(', ') : 'No species';
     const hasHarvest = harvests && harvests.length > 0;
     
-    // Calculate basic status
-    let statusColor = 'green';
-    let statusText = 'Active';
     let totalStocked = 0;
     if (pond.species) {
       for (const sp of pond.species) {
@@ -65,7 +58,7 @@ export async function renderPondList() {
       <div class="pond-card" data-pond-id="${escapeHtml(pond.id)}">
         <div class="name">${name}</div>
         <div class="species">${speciesList} • ${area}ha</div>
-        <span class="status ${statusColor}">${escapeHtml(statusText)}</span>
+        <span class="status green">${hasHarvest ? 'Harvested' : 'Active'}</span>
         ${hasHarvest ? `<span class="harvested-badge">Harvested</span>` : ''}
         <div class="metric">📅 ${pond.stockingDate || 'Not stocked yet'}</div>
         <div class="metric">🐟 Stocked: ${totalStocked}</div>
@@ -86,7 +79,6 @@ export async function renderPondList() {
   });
 }
 
-// ---- Show Pond Detail ----
 export async function showPondDetail(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -131,7 +123,6 @@ export async function showPondDetail(pondId) {
   `;
 }
 
-// ---- Show Add Pond Modal ----
 export function showAddPondModal() {
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
@@ -187,7 +178,6 @@ export function showAddPondModal() {
     </form>
   `;
   
-  // Add species entry functionality
   let speciesIndex = 1;
   document.getElementById('add-species-entry-btn').addEventListener('click', () => {
     const container = document.getElementById('species-list-container');
@@ -252,7 +242,6 @@ export function showAddPondModal() {
       return;
     }
     
-    // Gather species data
     const speciesEntries = document.querySelectorAll('.species-entry');
     const species = [];
     let hasSpecies = false;
@@ -293,7 +282,6 @@ export function showAddPondModal() {
   });
 }
 
-// ---- Edit Pond ----
 export async function editPond(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -335,6 +323,8 @@ export async function editPond(pondId) {
         <button type="button" class="remove-species-entry small-btn delete" data-index="${idx}">Remove</button>
       </div>
     `).join('');
+  } else {
+    speciesHtml = `<p style="color:var(--text-muted);">No species added yet.</p>`;
   }
   
   body.innerHTML = `
@@ -350,7 +340,7 @@ export async function editPond(pondId) {
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
         <h4>Species in this pond</h4>
         <div id="species-list-container">
-          ${speciesHtml || '<p style="color:var(--text-muted);">No species added yet.</p>'}
+          ${speciesHtml}
         </div>
         <button type="button" id="add-species-entry-btn" class="secondary-btn" style="margin-top:8px;width:100%;">+ Add Another Species</button>
       </div>
@@ -359,13 +349,103 @@ export async function editPond(pondId) {
     </form>
   `;
   
-  // Add species entry functionality (same as add modal)
-  // ... (similar logic as addPondModal, omitted for brevity)
+  // Reuse add species logic
+  let speciesIndex = pond.species ? pond.species.length : 0;
+  document.getElementById('add-species-entry-btn').addEventListener('click', () => {
+    const container = document.getElementById('species-list-container');
+    const entry = document.createElement('div');
+    entry.className = 'species-entry';
+    entry.dataset.index = speciesIndex;
+    entry.style.cssText = 'background:var(--bg);padding:8px;border-radius:8px;margin-bottom:8px;';
+    entry.innerHTML = `
+      <div class="form-row">
+        <div class="form-group">
+          <label>Species *</label>
+          <select class="species-select" data-index="${speciesIndex}" required>
+            <option value="">Select species</option>
+            ${speciesOptions}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Fingerlings *</label>
+          <input type="number" class="species-fingerlings" data-index="${speciesIndex}" required placeholder="e.g., 5000">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Stocking Date</label>
+          <input type="date" class="species-stocking-date" data-index="${speciesIndex}">
+        </div>
+        <div class="form-group">
+          <label>Stocking Weight (g)</label>
+          <input type="number" class="species-stocking-weight" data-index="${speciesIndex}" step="0.1" placeholder="e.g., 5">
+        </div>
+      </div>
+      <button type="button" class="remove-species-entry small-btn delete" data-index="${speciesIndex}">Remove</button>
+    `;
+    container.appendChild(entry);
+    speciesIndex++;
+    updateSpeciesRemoveButtonsEdit();
+  });
+  
+  function updateSpeciesRemoveButtonsEdit() {
+    document.querySelectorAll('#species-list-container .remove-species-entry').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const entries = document.querySelectorAll('#species-list-container .species-entry');
+        if (entries.length > 1) {
+          this.closest('.species-entry').remove();
+        } else {
+          alert('At least one species is required.');
+        }
+      });
+    });
+  }
+  updateSpeciesRemoveButtonsEdit();
   
   document.getElementById('edit-pond-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    // Similar to add, but with update
-    // ... (handle update)
+    
+    const name = document.getElementById('edit-pond-name').value.trim();
+    const area = validateNumber(document.getElementById('edit-pond-area').value, 0);
+    const location = document.getElementById('edit-pond-location').value.trim() || '';
+    
+    if (!name || !area) {
+      alert('Please fill in all required fields.');
+      return;
+    }
+    
+    const speciesEntries = document.querySelectorAll('#species-list-container .species-entry');
+    const species = [];
+    let hasSpecies = false;
+    
+    for (const entry of speciesEntries) {
+      const speciesId = entry.querySelector('.species-select').value;
+      const fingerlings = validateNumber(entry.querySelector('.species-fingerlings').value, 0);
+      if (speciesId && fingerlings > 0) {
+        hasSpecies = true;
+        species.push({
+          speciesId: speciesId,
+          stockingDate: entry.querySelector('.species-stocking-date').value || new Date().toISOString().split('T')[0],
+          fingerlings: fingerlings,
+          stockingWeight: validateNumber(entry.querySelector('.species-stocking-weight').value, 0)
+        });
+      }
+    }
+    
+    if (!hasSpecies) {
+      alert('Please add at least one species with fingerlings.');
+      return;
+    }
+    
+    const updatedPond = {
+      ...pond,
+      name: name,
+      area: area,
+      location: location,
+      species: species
+    };
+    
+    await update('ponds', updatedPond);
     modal.style.display = 'none';
     await renderPondList();
     updateSelectors();
@@ -373,78 +453,6 @@ export async function editPond(pondId) {
   });
 }
 
-// ---- Delete Functions ----
-export async function deleteLog(logId) {
-  if (!confirm('Delete this log entry?')) return;
-  await remove('dailyLogs', logId);
-  await renderPondList();
-  showMessage('log-message', 'Log deleted.', 'info');
-}
-
-export function printReport() {
-  window.print();
-}
-
-export function exportToCSV(data, filename) {
-  if (!data || data.length === 0) {
-    showMessage('log-message', 'No data to export.', 'error');
-    return;
-  }
-  const headers = Object.keys(data[0]).join(',');
-  const rows = data.map(row => Object.values(row).map(v => `"${v}"`).join(','));
-  const csv = [headers, ...rows].join('\n');
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showMessage('log-message', 'CSV exported!', 'success');
-}
-
-// ---- Render Help ----
-export function renderHelp() {
-  const container = document.getElementById('help-content');
-  if (!container) return;
-  container.innerHTML = `
-    <div style="max-width:800px;margin:0 auto;">
-      <h2 style="margin-bottom:16px;">Help & FAQ</h2>
-      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
-        <h3 style="margin-bottom:8px;color:#3498db;">Getting Started</h3>
-        <p><strong>Q: How do I start using the app?</strong></p>
-        <p>A: First, add a pond using the Dashboard. Select species and stocking details.</p>
-        <p style="margin-top:8px;"><strong>Q: Can I have multiple species in one pond?</strong></p>
-        <p>A: Yes! When adding a pond, you can add multiple species for polyculture.</p>
-        <p style="margin-top:8px;"><strong>Q: What's the sample data?</strong></p>
-        <p>A: Go to Settings → Load Sample Data. Creates a demo pond with multiple species.</p>
-      </div>
-      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
-        <h3 style="margin-bottom:8px;color:#2ecc71;">Species & Polyculture</h3>
-        <p><strong>Q: What species are supported?</strong></p>
-        <p>A: Bangus, Saline-Tolerant Tilapia, SPIN YY Tilapia, Shrimp, Mud Crab, and Oyster.</p>
-        <p style="margin-top:8px;"><strong>Q: Can I track different species separately?</strong></p>
-        <p>A: Yes. Each log entry has species-specific sections for weight, mortality, and feed.</p>
-      </div>
-      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #f39c12;">
-        <h3 style="margin-bottom:8px;color:#f39c12;">Data Safety</h3>
-        <p><strong>Q: How do I back up my data?</strong></p>
-        <p>A: Go to Settings → Export Data. Save the JSON file to your computer.</p>
-        <p style="margin-top:8px;"><strong>Q: What happens if I clear my browser cache?</strong></p>
-        <p>A: Your data will be lost. Always export regularly!</p>
-      </div>
-      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #e74c3c;">
-        <h3 style="margin-bottom:8px;color:#e74c3c;">Troubleshooting</h3>
-        <p><strong>Q: The app isn't loading.</strong></p>
-        <p>A: Try clearing your browser cache or opening in a private/incognito window.</p>
-        <p style="margin-top:8px;"><strong>Q: My buttons aren't working.</strong></p>
-        <p>A: Check if JavaScript is enabled. Try a different browser.</p>
-      </div>
-    </div>
-  `;
-}
-
-// ---- Update Selectors ----
 export async function updateSelectors() {
   const ponds = await getAll('ponds');
   const selectors = ['log-pond', 'harvest-pond', 'analysis-pond', 'decide-pond', 'prep-pond'];
@@ -474,7 +482,6 @@ export async function updateSelectors() {
   }
 }
 
-// ---- Render Harvest List ----
 export async function renderHarvestList(pondId) {
   const container = document.getElementById('harvest-list');
   if (!container) return;
@@ -507,7 +514,6 @@ export async function renderHarvestList(pondId) {
   `).join('');
 }
 
-// ---- Render Analysis ----
 export async function renderAnalysis(pondId) {
   const container = document.getElementById('analysis-content');
   if (!pondId) {
@@ -521,14 +527,15 @@ export async function renderAnalysis(pondId) {
   }
   
   let html = `<h3 style="margin-bottom:12px;">${escapeHtml(pond.name)}</h3>`;
-  html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:16px;">`;
+  html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
   
   if (pond.species && pond.species.length > 0) {
     for (const sp of pond.species) {
       const species = getSpecies(sp.speciesId);
       const totals = await getSpeciesTotals(pondId, sp.speciesId);
+      const color = species ? species.color : '#666';
       html += `
-        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${species ? species.color : '#666'};">
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${color};">
           <div style="font-weight:600;">${species ? species.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</div>
           <div style="font-size:0.85rem;color:var(--text-light);">
             Stocked: ${sp.fingerlings || 0}<br>
@@ -547,7 +554,6 @@ export async function renderAnalysis(pondId) {
   container.innerHTML = html;
 }
 
-// ---- Render Decide ----
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
@@ -568,8 +574,9 @@ export async function renderDecide(pondId) {
     for (const sp of pond.species) {
       const species = getSpecies(sp.speciesId);
       const totals = await getSpeciesTotals(pondId, sp.speciesId);
+      const color = species ? species.color : '#666';
       html += `
-        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);margin-bottom:12px;border-left:4px solid ${species ? species.color : '#666'};">
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);margin-bottom:12px;border-left:4px solid ${color};">
           <div style="font-weight:600;font-size:1.1rem;">${species ? species.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</div>
           <div style="font-size:0.9rem;color:var(--text-light);margin-top:4px;">
             ${totals.survival !== null && species ? (totals.survival < species.targetSurvival ? '⚠️ Survival below target' : '✅ Survival on track') : '📊 No survival data'}
@@ -580,6 +587,7 @@ export async function renderDecide(pondId) {
               Target Survival: ${species.targetSurvival}% • Target FCR: ${species.targetFCR || 'N/A'}
             </div>
           ` : ''}
+          ${totals.totalRevenue > 0 ? `<div style="font-size:0.85rem;color:var(--text-muted);">Revenue: ${formatCurrency(totals.totalRevenue)}</div>` : ''}
         </div>
       `;
     }
@@ -590,9 +598,74 @@ export async function renderDecide(pondId) {
   container.innerHTML = html;
 }
 
+export function renderHelp() {
+  const container = document.getElementById('help-content');
+  if (!container) return;
+  container.innerHTML = `
+    <div style="max-width:800px;margin:0 auto;">
+      <h2 style="margin-bottom:16px;">Help & FAQ</h2>
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
+        <h3 style="margin-bottom:8px;color:#3498db;">Getting Started</h3>
+        <p><strong>Q: How do I start using the app?</strong></p>
+        <p>A: First, add a pond using the Dashboard. Select species and stocking details.</p>
+        <p style="margin-top:8px;"><strong>Q: Can I have multiple species in one pond?</strong></p>
+        <p>A: Yes! When adding a pond, you can add multiple species for polyculture.</p>
+        <p style="margin-top:8px;"><strong>Q: What's the sample data?</strong></p>
+        <p>A: Go to Settings → Load Sample Data. Creates a demo pond with multiple species.</p>
+      </div>
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
+        <h3 style="margin-bottom:8px;color:#2ecc71;">Species & Polyculture</h3>
+        <p><strong>Q: What species are supported?</strong></p>
+        <p>A: Bangus, Saline-Tolerant Tilapia, SPIN YY Tilapia, Shrimp, Mud Crab, and Oyster.</p>
+        <p style="margin-top:8px;"><strong>Q: Can I track different species separately?</strong></p>
+        <p>A: Yes. Each log entry has species-specific sections for weight, mortality, and feed.</p>
+      </div>
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #f39c12;">
+        <h3 style="margin-bottom:8px;color:#f39c12;">Data Safety</h3>
+        <p><strong>Q: How do I back up my data?</strong></p>
+        <p>A: Go to Settings → Export Data. Save the JSON file to your computer.</p>
+        <p style="margin-top:8px;"><strong>Q: What happens if I clear my browser cache?</strong></p>
+        <p>A: Your data will be lost. Always export regularly!</p>
+      </div>
+    </div>
+  `;
+}
+
+export function exportToCSV(data, filename) {
+  if (!data || data.length === 0) {
+    showMessage('log-message', 'No data to export.', 'error');
+    return;
+  }
+  const headers = Object.keys(data[0]).join(',');
+  const rows = data.map(row => Object.values(row).map(v => `"${v}"`).join(','));
+  const csv = [headers, ...rows].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().split('T')[0]}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showMessage('log-message', 'CSV exported!', 'success');
+}
+
+export function printReport() {
+  window.print();
+}
+
+// ---- Delete Functions ----
+export async function deleteLog(logId) {
+  if (!confirm('Delete this log entry?')) return;
+  await remove('dailyLogs', logId);
+  await renderPondList();
+  showMessage('log-message', 'Log deleted.', 'info');
+}
+
 // ---- Expose functions to window ----
 window.editPond = editPond;
 window.deleteLog = deleteLog;
+window.deletePond = window.deletePond;
 window.deleteHarvest = window.deleteHarvest;
 window.editHarvest = window.editHarvest;
 window.printReport = printReport;
+window.showMessage = showMessage;
