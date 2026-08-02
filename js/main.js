@@ -4,7 +4,8 @@
 
 import {
   openDB, add, getAll, getByIndex, update, remove, clearStore,
-  exportAllData, importAllData, getSpeciesTotals, getSpeciesLogFromEntry
+  exportAllData, importAllData, getSpeciesTotals, getSpeciesLogFromEntry,
+  getById  // <-- ADDED THIS
 } from './db.js';
 import {
   getPondStatus, generateMultiSpeciesRecommendations,
@@ -22,80 +23,32 @@ import {
 import { renderPrep } from './prep.js';
 import { escapeHtml, formatNumber, formatCurrency, validateNumber, validateInt } from './utils.js';
 
-// ---- Species Log Template ----
-function createSpeciesLogEntry(speciesId = '', index = 0) {
-  const speciesList = getSpeciesList();
-  const options = speciesList.map(s =>
-    `<option value="${s.id}" ${s.id === speciesId ? 'selected' : ''}>${s.icon} ${s.name}</option>`
-  ).join('');
-
-  return `
-    <div class="species-log-entry" data-index="${index}" style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;border-left:4px solid ${speciesId ? getSpeciesColor(speciesId) : '#666'};">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <strong style="font-size:0.9rem;">Species #${index + 1}</strong>
-        <button type="button" class="remove-species-log small-btn delete" data-index="${index}">Remove</button>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Species *</label>
-          <select class="species-select" data-index="${index}" required>
-            <option value="">Select species</option>
-            ${options}
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Day of Culture (DOC)</label>
-          <input type="number" class="species-doc" data-index="${index}" min="0" step="1" placeholder="e.g., 45">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Sample Weight (g)</label>
-          <input type="number" class="species-weight" data-index="${index}" step="0.1" placeholder="e.g., 150">
-        </div>
-        <div class="form-group">
-          <label>Mortality</label>
-          <input type="number" class="species-mortality" data-index="${index}" value="0" min="0">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Feed Type</label>
-          <select class="species-feed-type" data-index="${index}">
-            <option value="Starter">Starter</option>
-            <option value="Grower" selected>Grower</option>
-            <option value="Finisher">Finisher</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Feed Amount (kg)</label>
-          <input type="number" class="species-feed-amount" data-index="${index}" step="0.1" value="0">
-        </div>
-        <div class="form-group">
-          <label>Feed Cost (₱)</label>
-          <input type="number" class="species-feed-cost" data-index="${index}" step="1" value="0">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Species Notes</label>
-        <input type="text" class="species-notes" data-index="${index}" placeholder="Observations for this species...">
-      </div>
-    </div>
-  `;
-}
-
 // ---- INIT ----
 async function init() {
   await openDB();
 
-  // DATA PERSISTENCE
+  // --- REGISTER SERVICE WORKER ---
+  if ('serviceWorker' in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.register('/fishpond-ooda-tool/sw.js', {
+        scope: '/fishpond-ooda-tool/'
+      });
+      console.log('✅ Service Worker registered successfully:', registration.scope);
+    } catch (error) {
+      console.warn('⚠️ Service Worker registration failed:', error);
+    }
+  } else {
+    console.log('ℹ️ Service Worker not supported in this browser');
+  }
+
+  // --- DATA PERSISTENCE ---
   if (navigator.storage && navigator.storage.persist) {
     navigator.storage.persist().then(persistent => {
       console.log('Persistent storage granted?', persistent);
     });
   }
 
-  // WEEKLY EXPORT REMINDER
+  // --- WEEKLY EXPORT REMINDER ---
   const lastExport = localStorage.getItem('lastExportDate');
   const now = new Date();
   if (lastExport) {
@@ -110,7 +63,7 @@ async function init() {
     }
   }
 
-  // SET DEFAULT DATES
+  // --- SET DEFAULT DATES ---
   const dateInput = document.getElementById('log-date');
   if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   const harvestDate = document.getElementById('harvest-date');
@@ -118,14 +71,14 @@ async function init() {
   const tideDate = document.getElementById('tide-date');
   if (tideDate) tideDate.value = new Date().toISOString().split('T')[0];
 
-  // RENDER INITIAL DATA
+  // --- RENDER INITIAL DATA ---
   await renderPondList();
   await updateSelectors();
 
-  // SETUP EVENT LISTENERS
+  // --- SETUP EVENT LISTENERS ---
   setupEventListeners();
 
-  // ONLINE STATUS
+  // --- ONLINE STATUS ---
   updateOnlineStatus();
   window.addEventListener('online', updateOnlineStatus);
   window.addEventListener('offline', updateOnlineStatus);
@@ -192,7 +145,6 @@ function setupEventListeners() {
       }
       if (tab === 'log') {
         await updateSelectors();
-        // Initialize species log entries
         const pondId = document.getElementById('log-pond')?.value;
         if (pondId) {
           await populateSpeciesLogs(pondId);
@@ -250,7 +202,6 @@ function setupEventListeners() {
     const pondId = document.getElementById('log-pond').value;
     if (!pondId) { showMessage('log-message', 'Please select a pond first.', 'error'); return; }
 
-    // Gather water quality data
     const temp = validateNumber(document.getElementById('log-temp').value);
     const ph = validateNumber(document.getElementById('log-ph').value);
     const salinity = validateNumber(document.getElementById('log-salinity').value);
@@ -264,7 +215,6 @@ function setupEventListeners() {
       return;
     }
 
-    // Gather species logs
     const speciesEntries = document.querySelectorAll('.species-log-entry');
     const speciesLogs = [];
     let hasSpecies = false;
@@ -273,7 +223,6 @@ function setupEventListeners() {
       const speciesId = entry.querySelector('.species-select').value;
       if (!speciesId) continue;
       hasSpecies = true;
-
       speciesLogs.push({
         speciesId: speciesId,
         doc: validateInt(entry.querySelector('.species-doc').value),
@@ -497,7 +446,68 @@ function setupEventListeners() {
   });
 }
 
-// ---- Populate Species Logs ----
+// ---- Species Log Helper Functions ----
+function createSpeciesLogEntry(speciesId = '', index = 0) {
+  const speciesList = getSpeciesList();
+  const options = speciesList.map(s =>
+    `<option value="${s.id}" ${s.id === speciesId ? 'selected' : ''}>${s.icon} ${s.name}</option>`
+  ).join('');
+
+  return `
+    <div class="species-log-entry" data-index="${index}" style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;border-left:4px solid ${speciesId ? getSpeciesColor(speciesId) : '#666'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <strong style="font-size:0.9rem;">Species #${index + 1}</strong>
+        <button type="button" class="remove-species-log small-btn delete" data-index="${index}">Remove</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Species *</label>
+          <select class="species-select" data-index="${index}" required>
+            <option value="">Select species</option>
+            ${options}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Day of Culture (DOC)</label>
+          <input type="number" class="species-doc" data-index="${index}" min="0" step="1" placeholder="e.g., 45">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Sample Weight (g)</label>
+          <input type="number" class="species-weight" data-index="${index}" step="0.1" placeholder="e.g., 150">
+        </div>
+        <div class="form-group">
+          <label>Mortality</label>
+          <input type="number" class="species-mortality" data-index="${index}" value="0" min="0">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Feed Type</label>
+          <select class="species-feed-type" data-index="${index}">
+            <option value="Starter">Starter</option>
+            <option value="Grower" selected>Grower</option>
+            <option value="Finisher">Finisher</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Feed Amount (kg)</label>
+          <input type="number" class="species-feed-amount" data-index="${index}" step="0.1" value="0">
+        </div>
+        <div class="form-group">
+          <label>Feed Cost (₱)</label>
+          <input type="number" class="species-feed-cost" data-index="${index}" step="1" value="0">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Species Notes</label>
+        <input type="text" class="species-notes" data-index="${index}" placeholder="Observations for this species...">
+      </div>
+    </div>
+  `;
+}
+
 async function populateSpeciesLogs(pondId) {
   const pond = await getById('ponds', pondId);
   const container = document.getElementById('species-log-entries');
@@ -511,14 +521,12 @@ async function populateSpeciesLogs(pondId) {
     }
     document.getElementById('add-species-log-btn').style.display = 'block';
   } else {
-    // Default: add one empty entry
     container.insertAdjacentHTML('beforeend', createSpeciesLogEntry('', 0));
     document.getElementById('add-species-log-btn').style.display = 'block';
   }
   updateSpeciesLogColors();
 }
 
-// ---- Populate Harvest Species ----
 async function populateHarvestSpecies(pondId) {
   const select = document.getElementById('harvest-species');
   select.innerHTML = '<option value="">Select species</option>';
@@ -535,7 +543,6 @@ async function populateHarvestSpecies(pondId) {
   }
 }
 
-// ---- Update Species Log Colors ----
 function updateSpeciesLogColors() {
   document.querySelectorAll('.species-log-entry').forEach(entry => {
     const select = entry.querySelector('.species-select');
@@ -545,7 +552,6 @@ function updateSpeciesLogColors() {
   });
 }
 
-// ---- Update Species Log Indices ----
 function updateSpeciesLogIndices() {
   document.querySelectorAll('.species-log-entry').forEach((entry, index) => {
     entry.dataset.index = index;
@@ -563,7 +569,7 @@ function updateSpeciesLogIndices() {
   });
 }
 
-// ---- Sample Data (Multi-Species) ----
+// ---- Sample Data ----
 async function loadSampleData() {
   const ponds = await getAll('ponds');
   if (ponds.length > 0) return;
@@ -611,7 +617,6 @@ async function loadSampleData() {
     const nitrite = 0.02 + Math.random() * 0.08;
 
     const speciesLogs = [];
-    // Bangus
     speciesLogs.push({
       speciesId: 'bangus',
       doc: day,
@@ -622,7 +627,6 @@ async function loadSampleData() {
       feedCost: Math.round((1.5 + (day / 60) * 3) * 45),
       notes: ''
     });
-    // Tilapia
     speciesLogs.push({
       speciesId: 'tilapiaSaltTolerant',
       doc: day - 10,
@@ -633,7 +637,6 @@ async function loadSampleData() {
       feedCost: Math.round((1 + (day / 60) * 2) * 40),
       notes: ''
     });
-    // Shrimp
     speciesLogs.push({
       speciesId: 'shrimp',
       doc: day - 20,
