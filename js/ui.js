@@ -2,13 +2,31 @@
 // UI HELPERS - Complete with All Exports
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, getById, exportAllData } from './db.js';
-import { getSpeciesTotals, getSpeciesLogFromEntry } from './db.js';
+import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals } from './db.js';
 import { getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor } from './species.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
+import { renderPrep } from './prep.js';
 
 // ============================================================
-// EXPORT ALL FUNCTIONS (DECLARED AT TOP FOR CLARITY)
+// DECISION ENGINE IMPORTS
+// ============================================================
+
+import {
+  generateDecisionMatrix,
+  calculateCostBenefit,
+  calculateReorderPoint,
+  calculatePondHealthScore,
+  calculateHistoricalAverages
+} from './decide.js';
+
+import {
+  getPondStatus as getPondStatusOODA,
+  generateMultiSpeciesRecommendations,
+  getPolycultureRecommendation
+} from './ooda.js';
+
+// ============================================================
+// EXPORT ALL FUNCTIONS
 // ============================================================
 
 // ---- Tab Navigation ----
@@ -355,7 +373,6 @@ export async function editPond(pondId) {
     </form>
   `;
   
-  // Reuse add species logic
   let speciesIndex = pond.species ? pond.species.length : 0;
   document.getElementById('add-species-entry-btn').addEventListener('click', () => {
     const container = document.getElementById('species-list-container');
@@ -522,90 +539,341 @@ export async function renderHarvestList(pondId) {
   `).join('');
 }
 
-// ---- Render Analysis ----
+// ---- Render Analysis (OODA Integration) ----
 export async function renderAnalysis(pondId) {
   const container = document.getElementById('analysis-content');
   if (!pondId) {
     container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Select a pond to analyze.</p>';
     return;
   }
-  const pond = await getById('ponds', pondId);
-  if (!pond) {
-    container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found.</p>';
-    return;
-  }
-  
-  let html = `<h3 style="margin-bottom:12px;">${escapeHtml(pond.name)}</h3>`;
-  html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
-  
-  if (pond.species && pond.species.length > 0) {
-    for (const sp of pond.species) {
-      const species = getSpecies(sp.speciesId);
-      const totals = await getSpeciesTotals(pondId, sp.speciesId);
-      const color = species ? species.color : '#666';
+
+  try {
+    // Get full OODA status
+    const status = await getPondStatusOODA(pondId);
+    if (!status) {
+      container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found or no data.</p>';
+      return;
+    }
+
+    // Get recommendations
+    const recs = await generateMultiSpeciesRecommendations(pondId);
+    if (!recs) {
+      container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Could not generate recommendations.</p>';
+      return;
+    }
+
+    let html = `
+      <h3 style="margin-bottom:12px;">${escapeHtml(status.name)}</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+        ${status.area}ha • ${status.species.length} species • ${status.latestWaterQuality ? `Last reading: ${status.latestWaterQuality.date}` : 'No water quality data'}
+      </p>
+    `;
+
+    // ---- Water Quality ----
+    if (status.latestWaterQuality) {
+      const wq = status.latestWaterQuality;
       html += `
-        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${color};">
-          <div style="font-weight:600;">${species ? species.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</div>
-          <div style="font-size:0.85rem;color:var(--text-light);">
-            Stocked: ${sp.fingerlings || 0}<br>
-            ${totals.survival !== null ? `Survival: ${totals.survival}%` : 'No data'}<br>
-            ${totals.fcr !== null ? `FCR: ${totals.fcr}` : 'No data'}<br>
-            ${totals.totalRevenue > 0 ? `Revenue: ${formatCurrency(totals.totalRevenue)}` : 'No harvest'}
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);margin-bottom:16px;">
+          <strong>🌊 Latest Water Quality</strong>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:8px;margin-top:6px;font-size:0.85rem;">
+            <div>Temp: ${wq.temp}°C</div>
+            <div>pH: ${wq.ph}</div>
+            <div>Salinity: ${wq.salinity}ppt</div>
+            <div>DO: ${wq.do}ppm</div>
+            <div>Ammonia: ${wq.ammonia}ppm</div>
+            ${wq.nitrate !== null ? `<div>Nitrate: ${wq.nitrate}ppm</div>` : ''}
+            ${wq.nitrite !== null ? `<div>Nitrite: ${wq.nitrite}ppm</div>` : ''}
           </div>
         </div>
       `;
     }
-  } else {
-    html += '<p style="color:var(--text-light);">No species data available.</p>';
+
+    // ---- Species Grid ----
+    html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
+    for (const sp of status.species) {
+      const color = sp.speciesColor || '#666';
+      html += `
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${color};">
+          <div style="font-weight:600;">${sp.speciesIcon || '🐟'} ${sp.speciesName}</div>
+          <div style="font-size:0.85rem;color:var(--text-light);">
+            Stocked: ${sp.originalStocked || 0}<br>
+            ${sp.survival !== null ? `Survival: ${sp.survival}%` : 'No data'}<br>
+            ${sp.fcr !== null ? `FCR: ${sp.fcr}` : 'No data'}<br>
+            ${sp.totalRevenue > 0 ? `Revenue: ${formatCurrency(sp.totalRevenue)}` : 'No harvest'}
+          </div>
+          <div style="font-size:0.75rem;color:${sp.statusColor === 'red' ? '#e74c3c' : sp.statusColor === 'yellow' ? '#f39c12' : '#2ecc71'};margin-top:4px;">
+            ${sp.statusText}
+          </div>
+        </div>
+      `;
+    }
+    html += `</div>`;
+
+    // ---- Recommendations ----
+    html += `
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
+        <h4 style="margin-bottom:8px;">📋 Recommendations</h4>
+        ${recs.dataWarning ? `<div style="font-size:0.85rem;color:#f39c12;margin-bottom:8px;">⚠️ ${recs.dataWarning}</div>` : ''}
+        ${recs.decision.length > 0 ? `
+          <div style="font-weight:600;font-size:0.95rem;">${recs.decision.join(' • ')}</div>
+        ` : ''}
+        ${recs.action.length > 0 ? `
+          <ul style="margin-top:6px;padding-left:18px;font-size:0.9rem;">
+            ${recs.action.map(a => `<li>${a}</li>`).join('')}
+          </ul>
+        ` : ''}
+        ${recs.observations.length > 0 ? `
+          <div style="margin-top:8px;font-size:0.85rem;color:var(--text-muted);">
+            ${recs.observations.join(' • ')}
+          </div>
+        ` : ''}
+        <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">
+          Confidence: ${recs.confidence}
+        </div>
+      </div>
+    `;
+
+    // ---- Polyculture Compatibility ----
+    if (status.species && status.species.length > 1) {
+      const speciesIds = status.species.map(s => s.speciesId);
+      const compatibility = getPolycultureRecommendation(speciesIds);
+      const color = compatibility.recommendation.includes('✅') ? '#2ecc71' : 
+                    compatibility.recommendation.includes('⚠️') ? '#f39c12' : '#e74c3c';
+      html += `
+        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${color};">
+          <h4 style="margin-bottom:4px;">🔄 Polyculture Status</h4>
+          <div style="font-size:0.95rem;">${compatibility.recommendation}</div>
+          ${compatibility.details ? `<div style="font-size:0.85rem;color:var(--text-muted);">${compatibility.details}</div>` : ''}
+          ${compatibility.warnings && compatibility.warnings.length > 0 ? `
+            <div style="font-size:0.85rem;color:#e74c3c;margin-top:4px;">${compatibility.warnings.join(' • ')}</div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // ---- Status Footer ----
+    html += `
+      <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
+        ${status.dataCompleteness ? `${status.dataCompleteness.speciesCount} species • ${status.dataCompleteness.harvestedCount} harvested` : ''}
+        ${status.netProfit !== undefined ? ` • Net: ${formatCurrency(status.netProfit)}` : ''}
+      </div>
+    `;
+
+    container.innerHTML = html;
+  } catch (error) {
+    console.error('Analysis error:', error);
+    container.innerHTML = `<p style="color:var(--text-light);text-align:center;padding:40px 0;">Error loading analysis: ${error.message}</p>`;
   }
-  
-  html += `</div>`;
-  container.innerHTML = html;
 }
 
-// ---- Render Decide ----
+// ---- Render Decide (Full Decision Support) ----
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
+
   if (!pondId) {
     container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Select a pond to get decision support.</p>';
     return;
   }
-  const pond = await getById('ponds', pondId);
-  if (!pond) {
-    container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found.</p>';
-    return;
-  }
-  
-  let html = `<h3 style="margin-bottom:12px;">${escapeHtml(pond.name)} - Decision Support</h3>`;
-  html += `<p style="color:var(--text-muted);margin-bottom:16px;">Species-specific recommendations based on current data.</p>`;
-  
-  if (pond.species && pond.species.length > 0) {
-    for (const sp of pond.species) {
-      const species = getSpecies(sp.speciesId);
-      const totals = await getSpeciesTotals(pondId, sp.speciesId);
-      const color = species ? species.color : '#666';
+
+  try {
+    const pond = await getById('ponds', pondId);
+    if (!pond) {
+      container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found.</p>';
+      return;
+    }
+
+    const logs = await getByIndex('dailyLogs', 'pondId', pondId);
+    const harvests = await getByIndex('harvests', 'pondId', pondId);
+    const status = await getPondStatusOODA(pondId);
+
+    let html = `
+      <h3 style="margin-bottom:12px;">🧠 Decision Support - ${escapeHtml(pond.name)}</h3>
+      <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
+        Data-driven decision tools for better farm management.
+      </p>
+    `;
+
+    // ---- 1. Historical Averages (Law of Averages) ----
+    const avgData = calculateHistoricalAverages(pond, logs, harvests);
+    if (avgData && logs.length > 0) {
       html += `
-        <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);margin-bottom:12px;border-left:4px solid ${color};">
-          <div style="font-weight:600;font-size:1.1rem;">${species ? species.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</div>
-          <div style="font-size:0.9rem;color:var(--text-light);margin-top:4px;">
-            ${totals.survival !== null && species ? (totals.survival < species.targetSurvival ? '⚠️ Survival below target' : '✅ Survival on track') : '📊 No survival data'}
-            ${totals.fcr !== null && species && species.targetFCR ? (totals.fcr > species.targetFCR ? '⚠️ FCR above target' : '✅ FCR on track') : ''}
+        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
+          <h4 style="margin-bottom:8px;">📊 Historical Averages</h4>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;">
+            <div><small>Cycles</small><br><strong>${avgData.cycles || 0}</strong></div>
+            ${avgData.avgFCR !== null ? `<div><small>Avg FCR</small><br><strong>${avgData.avgFCR}</strong></div>` : ''}
+            ${avgData.avgSurvival !== null ? `<div><small>Avg Survival</small><br><strong>${avgData.avgSurvival}%</strong></div>` : ''}
+            <div><small>Avg Feed Cost</small><br><strong>${formatCurrency(avgData.avgFeedCostPerCycle)}</strong></div>
           </div>
-          ${species ? `
-            <div style="font-size:0.85rem;color:var(--text-muted);margin-top:4px;">
-              Target Survival: ${species.targetSurvival}% • Target FCR: ${species.targetFCR || 'N/A'}
-            </div>
-          ` : ''}
-          ${totals.totalRevenue > 0 ? `<div style="font-size:0.85rem;color:var(--text-muted);">Revenue: ${formatCurrency(totals.totalRevenue)}</div>` : ''}
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">
+            Based on ${avgData.cycles || 0} cycles and ${logs.length} log entries
+          </div>
         </div>
       `;
     }
-  } else {
-    html += '<p style="color:var(--text-light);">No species data available.</p>';
+
+    // ---- 2. Pond Health Score (Weighted Average) ----
+    const weights = { temp: 0.20, ph: 0.20, salinity: 0.10, do: 0.25, ammonia: 0.15, fcr: 0.10 };
+    const health = calculatePondHealthScore(logs, weights);
+    if (health) {
+      const color = health.score >= 80 ? '#2ecc71' : health.score >= 65 ? '#f39c12' : '#e74c3c';
+      html += `
+        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid ${color};">
+          <h4 style="margin-bottom:8px;">🏥 Pond Health Score</h4>
+          <div style="display:flex;align-items:center;gap:16px;">
+            <div style="font-size:2.5rem;font-weight:700;color:${color};">${health.score}</div>
+            <div>
+              <div style="font-weight:600;">${health.rating}</div>
+              <div style="font-size:0.8rem;color:var(--text-muted);">${health.dataCompleteness}% data available</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:4px;margin-top:8px;">
+            ${Object.entries(health.breakdown).map(([key, val]) => 
+              `<div style="background:var(--bg);padding:4px 8px;border-radius:4px;text-align:center;font-size:0.7rem;">
+                <div>${key}</div>
+                <strong>${val}%</strong>
+              </div>`
+            ).join('')}
+          </div>
+          ${health.missingMetrics && health.missingMetrics.length > 0 ? `
+            <div style="font-size:0.7rem;color:var(--text-muted);margin-top:4px;">
+              Missing: ${health.missingMetrics.join(', ')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    // ---- 3. Reorder Point ----
+    if (logs.length > 0) {
+      const dailyFeed = logs.reduce((s, l) => {
+        let total = 0;
+        if (l.speciesLogs) {
+          for (const sp of l.speciesLogs) {
+            total += sp.feedAmount || 0;
+          }
+        }
+        return s + total;
+      }, 0) / Math.max(1, logs.length);
+      
+      if (dailyFeed > 0) {
+        const reorder = calculateReorderPoint(dailyFeed, 5, 5);
+        html += `
+          <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #e67e22;">
+            <h4 style="margin-bottom:8px;">📦 Feed Reorder Point</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+              <div><small>Daily Feed</small><br><strong>${formatNumber(reorder.dailyConsumption, 1)} kg</strong></div>
+              <div><small>Reorder Point</small><br><strong>${formatNumber(reorder.reorderPoint, 1)} kg</strong></div>
+              <div><small>Safety Stock</small><br><strong>${formatNumber(reorder.safetyStock, 1)} kg</strong></div>
+              <div><small>Lead Time</small><br><strong>${reorder.leadTimeDays} days</strong></div>
+            </div>
+            <div style="font-size:0.8rem;color:var(--text-muted);margin-top:6px;">
+              Order more feed when inventory drops below ${formatNumber(reorder.reorderPoint, 1)} kg
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // ---- 4. Decision Matrix (Maximax/Maximin/Minimax) ----
+    const currentWeight = status ? status.species.reduce((sum, s) => sum + (s.totalHarvestWeight || 0), 0) : 1000;
+    const currentPrice = 140; // Default, could be from market data
+    
+    const scenarios = [
+      { label: 'Harvest Now', weight: currentWeight || 1000, price: currentPrice },
+      { label: 'Wait 1 Week', weight: (currentWeight || 1000) * 1.05, price: currentPrice * 1.02 },
+      { label: 'Wait 2 Weeks', weight: (currentWeight || 1000) * 1.10, price: currentPrice * 1.05 },
+      { label: 'Wait 3 Weeks', weight: (currentWeight || 1000) * 1.15, price: currentPrice * 1.08 }
+    ];
+
+    const decisionMatrix = generateDecisionMatrix(pond, logs, harvests, scenarios);
+    if (decisionMatrix) {
+      html += `
+        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #9b59b6;">
+          <h4 style="margin-bottom:12px;">🎯 Decision Matrix</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Compare harvest timing options based on your risk preference:</p>
+          
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:12px;">
+            <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #2ecc71;">
+              <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Maximax (Risk-Taker)</div>
+              <div style="font-weight:700;">${decisionMatrix.maximax.label}</div>
+              <div style="font-size:0.9rem;">Profit: ${formatCurrency(decisionMatrix.maximax.profit)}</div>
+            </div>
+            <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #f39c12;">
+              <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Maximin (Risk-Averse)</div>
+              <div style="font-weight:700;">${decisionMatrix.maximin.label}</div>
+              <div style="font-size:0.9rem;">Worst-case: ${formatCurrency(decisionMatrix.maximin.worstProfit)}</div>
+            </div>
+            <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #3498db;">
+              <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Minimax (Minimize Regret)</div>
+              <div style="font-weight:700;">${decisionMatrix.minimax.label}</div>
+              <div style="font-size:0.9rem;">Regret: ${formatCurrency(decisionMatrix.minimax.regret)}</div>
+            </div>
+          </div>
+          
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="background:var(--primary);color:#fff;">
+                  <th style="padding:6px 10px;text-align:left;">Option</th>
+                  <th style="padding:6px 10px;text-align:right;">Harvest (kg)</th>
+                  <th style="padding:6px 10px;text-align:right;">Price (₱/kg)</th>
+                  <th style="padding:6px 10px;text-align:right;">Revenue</th>
+                  <th style="padding:6px 10px;text-align:right;">Profit</th>
+                  <th style="padding:6px 10px;text-align:right;">Regret</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${decisionMatrix.matrix.map(m => `
+                  <tr style="border-bottom:1px solid var(--border);">
+                    <td style="padding:6px 10px;">${m.label}</td>
+                    <td style="padding:6px 10px;text-align:right;">${formatNumber(m.weight, 1)}</td>
+                    <td style="padding:6px 10px;text-align:right;">₱${formatNumber(m.price, 2)}</td>
+                    <td style="padding:6px 10px;text-align:right;">${formatCurrency(m.revenue)}</td>
+                    <td style="padding:6px 10px;text-align:right;font-weight:600;">${formatCurrency(m.profit)}</td>
+                    <td style="padding:6px 10px;text-align:right;">${formatCurrency(m.regret || 0)}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+          
+          <div style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">
+            💡 <strong>Recommendation:</strong> ${decisionMatrix.maximin.label} is safest (Maximin). ${decisionMatrix.maximax.label} gives highest potential profit (Maximax).
+          </div>
+        </div>
+      `;
+    }
+
+    // ---- 5. Cost-Benefit Analysis ----
+    if (status && status.totalCost > 0) {
+      const currentProfit = status.totalRevenue - status.totalCost;
+      const improvementBenefit = currentProfit * 0.15;
+      const cba = calculateCostBenefit(15000, improvementBenefit, 3, 0.1);
+      html += `
+        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid ${cba.recommended ? '#2ecc71' : '#e74c3c'};">
+          <h4 style="margin-bottom:8px;">💰 Cost-Benefit Analysis</h4>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">Example: Aerator Purchase (₱15,000 investment)</p>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+            <div><small>Investment</small><br><strong>${formatCurrency(cba.investmentCost)}</strong></div>
+            <div><small>Annual Benefit</small><br><strong>${formatCurrency(cba.annualBenefit)}</strong></div>
+            <div><small>NPV (3 yrs)</small><br><strong style="color:${cba.npv > 0 ? '#2ecc71' : '#e74c3c'};">${formatCurrency(cba.npv)}</strong></div>
+            <div><small>Payback</small><br><strong>${cba.paybackPeriod} cycles</strong></div>
+            <div><small>ROI</small><br><strong style="color:${cba.roi > 100 ? '#2ecc71' : '#f39c12'};">${cba.roi}%</strong></div>
+          </div>
+          <div style="font-size:0.85rem;font-weight:600;margin-top:6px;color:${cba.recommended ? '#2ecc71' : '#e74c3c'};">
+            ${cba.recommended ? '✅ Recommended - Positive net value' : '❌ Not recommended - Negative net value'}
+          </div>
+        </div>
+      `;
+    }
+
+    container.innerHTML = html || '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Not enough data for decision support. Add more logs and harvests.</p>';
+  } catch (error) {
+    console.error('Decide error:', error);
+    container.innerHTML = `<p style="color:var(--text-light);text-align:center;padding:40px 0;">Error loading decision support: ${error.message}</p>`;
   }
-  
-  container.innerHTML = html;
 }
 
 // ---- Render Help ----
@@ -674,36 +942,12 @@ export async function deleteLog(logId) {
   showMessage('log-message', 'Log deleted.', 'info');
 }
 
-// ---- Delete Harvest ----
-window.deleteHarvest = async function(harvestId) {
-  if (!confirm('Delete this harvest record?')) return;
-  await remove('harvests', harvestId);
-  const harvestPond = document.getElementById('harvest-pond');
-  if (harvestPond) await renderHarvestList(harvestPond.value);
-  await renderPondList();
-  showMessage('harvest-message', 'Harvest record deleted.', 'info');
-};
-
-// ---- Edit Harvest ----
-window.editHarvest = async function(harvestId) {
-  // Simplified - just alert for now
-  alert('Edit harvest: Click the edit button on a harvest record to modify it.');
-};
-
-// ---- Expose functions to window ----
+// ---- Expose to window ----
 window.editPond = editPond;
 window.deleteLog = deleteLog;
-window.deletePond = window.deletePond;
-window.deleteHarvest = window.deleteHarvest;
-window.editHarvest = window.editHarvest;
 window.printReport = printReport;
 window.showMessage = showMessage;
-window.renderPondList = renderPondList;
-window.updateSelectors = updateSelectors;
-window.renderHarvestList = renderHarvestList;
-window.renderAnalysis = renderAnalysis;
-window.renderDecide = renderDecide;
-window.renderHelp = renderHelp;
+window.deleteHarvest = window.deleteHarvest;
+window.editHarvest = window.editHarvest;
 
-// ---- Log that UI is loaded ----
-console.log('✅ ui.js loaded with all exports');
+console.log('✅ ui.js loaded with all exports and decision support');
