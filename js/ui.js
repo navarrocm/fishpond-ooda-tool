@@ -656,7 +656,7 @@ export async function renderAnalysis(pondId) {
   }
 }
 
-// ---- Render Decide (Full Decision Support) ----
+// ---- Render Decide (Full Decision Support with User-Configurable CBA) ----
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
@@ -768,7 +768,7 @@ export async function renderDecide(pondId) {
       }
     }
 
-    // ---- 4. Decision Matrix (FIXED: Added await) ----
+    // ---- 4. Decision Matrix ----
     const currentWeight = status ? status.species.reduce((sum, s) => sum + (s.totalHarvestWeight || 0), 0) : 1000;
     const currentPrice = 140;
     
@@ -779,7 +779,6 @@ export async function renderDecide(pondId) {
       { label: 'Wait 3 Weeks', weight: (currentWeight || 1000) * 1.15, price: currentPrice * 1.08 }
     ];
 
-    // 🔥 FIXED: Added await here
     const decisionMatrix = await generateDecisionMatrix(pond, logs, harvests, scenarios);
     
     if (decisionMatrix && decisionMatrix.matrix && decisionMatrix.matrix.length > 0) {
@@ -840,30 +839,114 @@ export async function renderDecide(pondId) {
       `;
     }
 
-    // ---- 5. Cost-Benefit Analysis ----
-    if (status && status.totalCost > 0) {
-      const currentProfit = status.totalRevenue - status.totalCost;
-      const improvementBenefit = currentProfit * 0.15;
-      const cba = calculateCostBenefit(15000, improvementBenefit, 3, 0.1);
-      html += `
-        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid ${cba.recommended ? '#2ecc71' : '#e74c3c'};">
-          <h4 style="margin-bottom:8px;">💰 Cost-Benefit Analysis</h4>
-          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:8px;">Example: Aerator Purchase (₱15,000 investment)</p>
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
-            <div><small>Investment</small><br><strong>${formatCurrency(cba.investmentCost)}</strong></div>
-            <div><small>Annual Benefit</small><br><strong>${formatCurrency(cba.annualBenefit)}</strong></div>
-            <div><small>NPV (3 yrs)</small><br><strong style="color:${cba.npv > 0 ? '#2ecc71' : '#e74c3c'};">${formatCurrency(cba.npv)}</strong></div>
-            <div><small>Payback</small><br><strong>${cba.paybackPeriod} cycles</strong></div>
-            <div><small>ROI</small><br><strong style="color:${cba.roi > 100 ? '#2ecc71' : '#f39c12'};">${cba.roi}%</strong></div>
+    // ---- 5. USER-CONFIGURABLE COST-BENEFIT ANALYSIS ----
+    // Calculate current profit to suggest a default benefit
+    const currentProfit = status ? status.totalRevenue - status.totalCost : 0;
+    const suggestedBenefit = currentProfit > 0 ? Math.round(currentProfit * 0.15) : 0;
+
+    html += `
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
+        <h4 style="margin-bottom:12px;">💰 Cost-Benefit Analysis</h4>
+        <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
+          Evaluate an investment decision. Enter the costs and expected benefits below.
+        </p>
+        
+        <form id="cba-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Investment Cost (₱) *</label>
+              <input type="number" id="cba-investment" step="1" value="15000" required placeholder="e.g., 15000">
+              <span class="hint">Total cost of the investment (equipment, installation).</span>
+            </div>
+            <div class="form-group">
+              <label>Expected Benefit per Cycle (₱) *</label>
+              <input type="number" id="cba-benefit" step="1" value="${suggestedBenefit || 12000}" required placeholder="e.g., 12000">
+              <span class="hint">Estimated additional profit per harvest cycle.</span>
+            </div>
           </div>
-          <div style="font-size:0.85rem;font-weight:600;margin-top:6px;color:${cba.recommended ? '#2ecc71' : '#e74c3c'};">
-            ${cba.recommended ? '✅ Recommended - Positive net value' : '❌ Not recommended - Negative net value'}
+          <div class="form-row">
+            <div class="form-group">
+              <label>Expected Lifespan (cycles)</label>
+              <input type="number" id="cba-lifespan" step="1" value="3" min="1" max="20">
+              <span class="hint">How many cycles the investment will last.</span>
+            </div>
+            <div class="form-group">
+              <label>Discount Rate (%)</label>
+              <input type="number" id="cba-discount" step="0.5" value="10" min="0" max="50">
+              <span class="hint">Opportunity cost of capital (default: 10%).</span>
+            </div>
+          </div>
+          <button type="submit" class="primary-btn" style="margin-top:4px;width:100%;">Calculate Analysis</button>
+        </form>
+        
+        <div id="cba-results" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;">
+            <div><small>Investment</small><br><strong id="cba-result-investment">—</strong></div>
+            <div><small>Annual Benefit</small><br><strong id="cba-result-benefit">—</strong></div>
+            <div><small>NPV</small><br><strong id="cba-result-npv" style="color:#2ecc71;">—</strong></div>
+            <div><small>Payback</small><br><strong id="cba-result-payback">—</strong></div>
+            <div><small>ROI</small><br><strong id="cba-result-roi">—</strong></div>
+            <div><small>Benefit-Cost Ratio</small><br><strong id="cba-result-bcr">—</strong></div>
+          </div>
+          <div style="font-size:0.85rem;font-weight:600;margin-top:8px;" id="cba-result-decision">
+            Enter values above and click "Calculate Analysis".
           </div>
         </div>
-      `;
-    }
+      </div>
+    `;
 
-    container.innerHTML = html || '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Not enough data for decision support. Add more logs and harvests.</p>';
+    container.innerHTML = html;
+
+    // ---- Attach CBA form handler ----
+    document.getElementById('cba-form')?.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const investment = validateNumber(document.getElementById('cba-investment').value);
+      const benefit = validateNumber(document.getElementById('cba-benefit').value);
+      const lifespan = validateNumber(document.getElementById('cba-lifespan').value, 3);
+      const discount = validateNumber(document.getElementById('cba-discount').value, 10) / 100;
+      
+      if (!investment || investment <= 0) {
+        showMessage('log-message', 'Please enter a valid investment cost.', 'error');
+        return;
+      }
+      if (!benefit || benefit <= 0) {
+        showMessage('log-message', 'Please enter a valid expected benefit.', 'error');
+        return;
+      }
+      
+      const result = calculateCostBenefit(investment, benefit, lifespan, discount);
+      
+      const resultsDiv = document.getElementById('cba-results');
+      resultsDiv.style.display = 'block';
+      
+      document.getElementById('cba-result-investment').textContent = formatCurrency(result.investmentCost);
+      document.getElementById('cba-result-benefit').textContent = formatCurrency(result.annualBenefit);
+      
+      const npvEl = document.getElementById('cba-result-npv');
+      npvEl.textContent = formatCurrency(result.npv);
+      npvEl.style.color = result.npv > 0 ? '#2ecc71' : '#e74c3c';
+      
+      document.getElementById('cba-result-payback').textContent = `${result.paybackPeriod} cycles`;
+      
+      const roiEl = document.getElementById('cba-result-roi');
+      roiEl.textContent = `${result.roi}%`;
+      roiEl.style.color = result.roi > 100 ? '#2ecc71' : result.roi > 50 ? '#f39c12' : '#e74c3c';
+      
+      document.getElementById('cba-result-bcr').textContent = result.benefitCostRatio.toFixed(2);
+      
+      const decisionEl = document.getElementById('cba-result-decision');
+      if (result.recommended) {
+        decisionEl.innerHTML = '✅ <strong>Recommended</strong> — Positive net value. The investment pays for itself in ' + result.paybackPeriod + ' cycles and generates ₱' + formatNumber(result.npv, 0) + ' in net value.';
+        decisionEl.style.color = '#2ecc71';
+      } else {
+        decisionEl.innerHTML = '❌ <strong>Not Recommended</strong> — Negative net value. The investment does not pay for itself within its expected lifespan.';
+        decisionEl.style.color = '#e74c3c';
+      }
+      
+      showMessage('log-message', 'Cost-benefit analysis complete!', 'success');
+    });
+
   } catch (error) {
     console.error('Decide error:', error);
     container.innerHTML = `<p style="color:var(--text-light);text-align:center;padding:40px 0;">Error loading decision support: ${error.message}</p>`;
@@ -899,6 +982,15 @@ export function renderHelp() {
         <p>A: Go to Settings → Export Data. Save the JSON file to your computer.</p>
         <p style="margin-top:8px;"><strong>Q: What happens if I clear my browser cache?</strong></p>
         <p>A: Your data will be lost. Always export regularly!</p>
+      </div>
+      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #9b59b6;">
+        <h3 style="margin-bottom:8px;color:#9b59b6;">Cost-Benefit Analysis</h3>
+        <p><strong>Q: How does the Cost-Benefit Analysis work?</strong></p>
+        <p>A: Enter the investment cost, expected benefit per cycle, lifespan, and discount rate. The app calculates NPV, payback period, ROI, and benefit-cost ratio.</p>
+        <p style="margin-top:8px;"><strong>Q: What is NPV?</strong></p>
+        <p>A: Net Present Value — the total value of the investment in today's pesos. Positive NPV means the investment is worthwhile.</p>
+        <p style="margin-top:8px;"><strong>Q: What discount rate should I use?</strong></p>
+        <p>A: Use 10% as a default. This represents the opportunity cost of your capital (what you could earn elsewhere).</p>
       </div>
     </div>
   `;
