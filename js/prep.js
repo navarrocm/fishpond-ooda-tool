@@ -2,8 +2,9 @@
 // PREP TAB - Pond Preparation Tracking
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove } from './db.js';
+import { getAll, getByIndex, add, update, remove, getById } from './db.js';  // <-- ADDED getById
 import { escapeHtml, formatNumber, validateNumber } from './utils.js';
+import { getSpecies, getSpeciesList, getSpeciesName } from './species.js';
 
 // ---- Render Prep Tab ----
 export async function renderPrep(pondId) {
@@ -15,8 +16,7 @@ export async function renderPrep(pondId) {
     return;
   }
 
-  const allPonds = await getAll('ponds');
-  const pond = allPonds.find(p => p.id === pondId);
+  const pond = await getById('ponds', pondId);
   if (!pond) {
     container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found.</p>';
     return;
@@ -24,7 +24,7 @@ export async function renderPrep(pondId) {
 
   const prepLogs = await getByIndex('prepLogs', 'pondId', pondId);
 
-  // Define task templates
+  // Task templates
   const taskTemplates = [
     { id: 'drying', label: 'Drying', icon: '☀️', fields: ['startDate', 'endDate', 'notes'] },
     { id: 'liming', label: 'Liming', icon: '🧪', fields: ['date', 'amount', 'soilPhBefore', 'soilPhAfter', 'notes'] },
@@ -35,7 +35,6 @@ export async function renderPrep(pondId) {
     { id: 'stocking', label: 'Stocking', icon: '🐟', fields: ['date', 'fingerlings', 'notes'] }
   ];
 
-  // Build task status map
   const taskMap = {};
   for (const log of prepLogs) {
     taskMap[log.task] = log;
@@ -54,7 +53,6 @@ export async function renderPrep(pondId) {
     </div>
   `;
 
-  // Task checklist
   html += `<div style="display:grid;gap:12px;">`;
 
   for (const task of taskTemplates) {
@@ -97,7 +95,7 @@ export async function renderPrep(pondId) {
 
   html += `</div>`;
 
-  // Water quality readings (Pre-stocking)
+  // Water quality readings
   const waterReadings = prepLogs.filter(l => l.task === 'waterQualityReading');
   html += `
     <div style="margin-top:20px;background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);">
@@ -173,7 +171,6 @@ export async function renderPrep(pondId) {
 
 // ---- Add Prep Task ----
 export function addPrepTask(pondId, taskId) {
-  // Show modal with task form
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
   modal.style.display = 'flex';
@@ -336,7 +333,6 @@ export function addPrepTask(pondId, taskId) {
       createdAt: new Date().toISOString()
     };
 
-    // Clean empty fields
     for (const key in data) {
       if (data[key] === '' || data[key] === null || data[key] === undefined) {
         delete data[key];
@@ -353,9 +349,21 @@ export function addPrepTask(pondId, taskId) {
 // ---- Edit Prep Task ----
 export async function editPrepTask(taskId) {
   const task = await getById('prepLogs', taskId);
-  if (!task) return;
-  // Similar to add but pre-populated - simplified for brevity
-  alert('Edit functionality: Click the edit button on a task to modify it. (Full implementation will pre-fill the form.)');
+  if (!task) {
+    showMessage('log-message', 'Task not found.', 'error');
+    return;
+  }
+  // Simplified: show current data and let user re-add
+  if (confirm(`Edit task "${task.task}"? Current notes: ${task.notes || 'None'}\n\nDelete and re-add to update.`)) {
+    await remove('prepLogs', taskId);
+    const pondId = document.getElementById('prep-pond')?.value;
+    if (pondId) {
+      await renderPrep(pondId);
+      // Open add modal for this task
+      addPrepTask(pondId, task.task);
+    }
+    showMessage('log-message', 'Task removed. Please re-add with updated info.', 'info');
+  }
 }
 
 // ---- Delete Prep Task ----
@@ -379,3 +387,5 @@ window.editPrepTask = editPrepTask;
 window.deletePrepTask = window.deletePrepTask;
 window.addWaterQualityReading = addPrepTask;
 window.editWaterQualityReading = editPrepTask;
+
+console.log('✅ prep.js loaded');
