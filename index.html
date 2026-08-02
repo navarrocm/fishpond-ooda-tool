@@ -1,17 +1,29 @@
 <!DOCTYPE html>
 <html lang="en">
-<head> 
+<head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
+  
+  <!-- ===== FAVICON ===== -->
+  <!-- Explicitly tell the browser where the favicon is -->
+  <link rel="icon" href="/fishpond-ooda-tool/favicon.ico" type="image/x-icon">
+  <link rel="shortcut icon" href="/fishpond-ooda-tool/favicon.ico" type="image/x-icon">
+  
+  <!-- ===== PWA MANIFEST ===== -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="description" content="Smart decision support for fishpond operators">
-  <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
+  
+  <!-- ===== APPLE TOUCH ICON ===== -->
   <link rel="apple-touch-icon" href="/fishpond-ooda-tool/icons/icon-192.png">
+  
+  <!-- ===== STYLES ===== -->
+  <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
 </head>
 <body>
   <div id="app">
+    <!-- HEADER -->
     <header id="app-header">
       <h1>Fishpond OODA Tool</h1>
       <span id="online-status" class="online">Online</span>
@@ -54,14 +66,13 @@
         </div>
       </section>
 
-      <!-- ===== LOG ENTRY (Multi-Species) ===== -->
+      <!-- ===== LOG ENTRY ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
           <h2>Daily Log Entry</h2>
           <span id="log-pond-name">Select a pond first</span>
         </div>
         <form id="log-form" novalidate>
-          <!-- Pond & Date -->
           <div class="form-row">
             <div class="form-group">
               <label for="log-pond">Pond *</label>
@@ -73,7 +84,6 @@
             </div>
           </div>
 
-          <!-- Water Quality (Shared) -->
           <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;">
             <h4 style="margin-bottom:8px;color:var(--primary-light);">🌊 Water Parameters (Shared)</h4>
             <div class="form-row">
@@ -127,16 +137,12 @@
             </div>
           </div>
 
-          <!-- Species Logs Container -->
           <div id="species-logs-container">
             <h4 style="margin-bottom:8px;color:var(--primary-light);">🐟 Species Data</h4>
-            <div id="species-log-entries">
-              <!-- Species log entries will be dynamically added -->
-            </div>
+            <div id="species-log-entries"></div>
             <button type="button" id="add-species-log-btn" class="secondary-btn" style="margin-top:8px;width:100%;">+ Add Species Log</button>
           </div>
 
-          <!-- Notes -->
           <div class="form-group" style="margin-top:12px;">
             <label for="log-notes">General Notes</label>
             <input type="text" id="log-notes" placeholder="Observations...">
@@ -147,7 +153,7 @@
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== HARVEST ===== -->
+      <!-- ===== HARVEST ENTRY ===== -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
           <h2>Harvest Entry</h2>
