@@ -1,11 +1,10 @@
 // ============================================================
-// SERVICE WORKER - Fishpond OODA Tool v2.1
+// SERVICE WORKER - Fishpond OODA Tool v5.0
 // ============================================================
 
-// BUMP THIS VERSION ON EVERY DEPLOYMENT TO FORCE UPDATES
-const CACHE_NAME = 'fishpond-ooda-v3';
+const CACHE_NAME = 'fishpond-ooda-v5';
 
-// Assets to cache on install
+// Assets to cache on install - ADDED prep.js and species.js
 const STATIC_ASSETS = [
   '/fishpond-ooda-tool/',
   '/fishpond-ooda-tool/index.html',
@@ -15,13 +14,15 @@ const STATIC_ASSETS = [
   '/fishpond-ooda-tool/js/db.js',
   '/fishpond-ooda-tool/js/ooda.js',
   '/fishpond-ooda-tool/js/ui.js',
-  '/fishpond-ooda-tool/js/main.js'
+  '/fishpond-ooda-tool/js/main.js',
+  '/fishpond-ooda-tool/js/prep.js',      // <-- ADDED
+  '/fishpond-ooda-tool/js/species.js',   // <-- ADDED
+  '/fishpond-ooda-tool/js/decide.js'
 ];
 
 // ---- INSTALL ----
 self.addEventListener('install', event => {
-  console.log('📦 Service Worker installing v3...');
-  
+  console.log('📦 Service Worker installing v5...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -30,7 +31,6 @@ self.addEventListener('install', event => {
       })
       .then(() => {
         console.log('✅ Service Worker installed successfully!');
-        // Force the waiting service worker to become active
         return self.skipWaiting();
       })
       .catch(error => {
@@ -41,24 +41,20 @@ self.addEventListener('install', event => {
 
 // ---- ACTIVATE ----
 self.addEventListener('activate', event => {
-  console.log('🚀 Service Worker activating v3...');
-  
+  console.log('🚀 Service Worker activating v5...');
   event.waitUntil(
     caches.keys()
       .then(cacheNames => {
-        // Delete all old caches that don't match the current one
         const deletePromises = cacheNames
           .filter(cacheName => cacheName !== CACHE_NAME)
           .map(cacheName => {
             console.log('🗑️ Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           });
-        
         return Promise.all(deletePromises);
       })
       .then(() => {
-        console.log('✅ Service Worker activated! Taking control of all clients...');
-        // Take control of all open clients/tabs
+        console.log('✅ Service Worker activated! Taking control...');
         return self.clients.claim();
       })
       .catch(error => {
@@ -70,109 +66,86 @@ self.addEventListener('activate', event => {
 // ---- FETCH ----
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
-  
-  // Skip requests for NAMRIA (cross-origin)
-  if (url.hostname.includes('namria')) {
-    return;
-  }
-  
-  // ---- STRATEGY: Network-first for navigation requests ----
+
+  if (event.request.method !== 'GET') return;
+  if (url.hostname.includes('namria')) return;
+
+  // ---- Network-first for navigation ----
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          // Clone the response for caching
           const responseClone = response.clone();
-          
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseClone);
-            })
-            .catch(err => console.warn('Cache put failed:', err));
-          
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
           return response;
         })
         .catch(() => {
-          // If network fails, try the cache
           return caches.match(event.request)
             .then(cached => {
               if (cached) return cached;
-              // Fallback to index.html for SPA routing
               return caches.match('/fishpond-ooda-tool/index.html');
             });
         })
     );
     return;
   }
-  
-  // ---- STRATEGY: Cache-first for static assets ----
+
+  // ---- Cache-first for static assets ----
   if (STATIC_ASSETS.some(asset => event.request.url.includes(asset))) {
     event.respondWith(
       caches.match(event.request)
         .then(cached => {
           if (cached) {
-            // Return cached version, but refresh in background
+            // Refresh cache in background
             fetch(event.request)
               .then(networkResponse => {
                 if (networkResponse && networkResponse.status === 200) {
-                  caches.open(CACHE_NAME)
-                    .then(cache => {
-                      cache.put(event.request, networkResponse);
-                    });
+                  caches.open(CACHE_NAME).then(cache => {
+                    cache.put(event.request, networkResponse);
+                  });
                 }
               })
               .catch(() => {});
             return cached;
           }
-          
-          // Not in cache, fetch from network
           return fetch(event.request)
             .then(response => {
               const responseClone = response.clone();
-              caches.open(CACHE_NAME)
-                .then(cache => {
-                  cache.put(event.request, responseClone);
-                });
+              caches.open(CACHE_NAME).then(cache => {
+                cache.put(event.request, responseClone);
+              });
               return response;
             });
         })
     );
     return;
   }
-  
-  // ---- STRATEGY: Network-first with cache fallback for everything else ----
+
+  // ---- Network-first with cache fallback ----
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cache successful responses (but not cross-origin)
         if (response && response.status === 200 && event.request.url.startsWith(self.location.origin)) {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME)
-            .then(cache => {
-              cache.put(event.request, responseClone);
-            })
-            .catch(() => {});
+          caches.open(CACHE_NAME).then(cache => {
+            cache.put(event.request, responseClone);
+          });
         }
         return response;
       })
       .catch(() => {
-        // Fallback to cache
         return caches.match(event.request);
       })
   );
 });
 
-// ---- MESSAGE HANDLING (for updates) ----
+// ---- MESSAGE HANDLING ----
 self.addEventListener('message', event => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
 
-// ---- LOGGING ----
-console.log('🔧 Service Worker loaded: fishpond-ooda-v3');
+console.log('🔧 Service Worker loaded: fishpond-ooda-v5');
