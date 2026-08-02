@@ -29,7 +29,6 @@ import {
 // EXPORT ALL FUNCTIONS
 // ============================================================
 
-// ---- Tab Navigation ----
 export function showTab(tabId) {
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -39,7 +38,6 @@ export function showTab(tabId) {
   if (btn) btn.classList.add('active');
 }
 
-// ---- Messages ----
 export function showMessage(target, message, type = 'success') {
   const el = document.getElementById(target);
   if (!el) return;
@@ -100,7 +98,6 @@ export async function renderPondList() {
   });
 }
 
-// ---- Show Pond Detail ----
 export async function showPondDetail(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -548,14 +545,12 @@ export async function renderAnalysis(pondId) {
   }
 
   try {
-    // Get full OODA status
     const status = await getPondStatusOODA(pondId);
     if (!status) {
       container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Pond not found or no data.</p>';
       return;
     }
 
-    // Get recommendations
     const recs = await generateMultiSpeciesRecommendations(pondId);
     if (!recs) {
       container.innerHTML = '<p style="color:var(--text-light);text-align:center;padding:40px 0;">Could not generate recommendations.</p>';
@@ -569,7 +564,6 @@ export async function renderAnalysis(pondId) {
       </p>
     `;
 
-    // ---- Water Quality ----
     if (status.latestWaterQuality) {
       const wq = status.latestWaterQuality;
       html += `
@@ -588,7 +582,6 @@ export async function renderAnalysis(pondId) {
       `;
     }
 
-    // ---- Species Grid ----
     html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
     for (const sp of status.species) {
       const color = sp.speciesColor || '#666';
@@ -609,7 +602,6 @@ export async function renderAnalysis(pondId) {
     }
     html += `</div>`;
 
-    // ---- Recommendations ----
     html += `
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
         <h4 style="margin-bottom:8px;">📋 Recommendations</h4>
@@ -633,7 +625,6 @@ export async function renderAnalysis(pondId) {
       </div>
     `;
 
-    // ---- Polyculture Compatibility ----
     if (status.species && status.species.length > 1) {
       const speciesIds = status.species.map(s => s.speciesId);
       const compatibility = getPolycultureRecommendation(speciesIds);
@@ -651,7 +642,6 @@ export async function renderAnalysis(pondId) {
       `;
     }
 
-    // ---- Status Footer ----
     html += `
       <div style="margin-top:12px;font-size:0.8rem;color:var(--text-muted);">
         ${status.dataCompleteness ? `${status.dataCompleteness.speciesCount} species • ${status.dataCompleteness.harvestedCount} harvested` : ''}
@@ -694,7 +684,7 @@ export async function renderDecide(pondId) {
       </p>
     `;
 
-    // ---- 1. Historical Averages (Law of Averages) ----
+    // ---- 1. Historical Averages ----
     const avgData = calculateHistoricalAverages(pond, logs, harvests);
     if (avgData && logs.length > 0) {
       html += `
@@ -713,7 +703,7 @@ export async function renderDecide(pondId) {
       `;
     }
 
-    // ---- 2. Pond Health Score (Weighted Average) ----
+    // ---- 2. Pond Health Score ----
     const weights = { temp: 0.20, ph: 0.20, salinity: 0.10, do: 0.25, ammonia: 0.15, fcr: 0.10 };
     const health = calculatePondHealthScore(logs, weights);
     if (health) {
@@ -747,15 +737,17 @@ export async function renderDecide(pondId) {
 
     // ---- 3. Reorder Point ----
     if (logs.length > 0) {
-      const dailyFeed = logs.reduce((s, l) => {
-        let total = 0;
-        if (l.speciesLogs) {
-          for (const sp of l.speciesLogs) {
-            total += sp.feedAmount || 0;
+      let totalDailyFeed = 0;
+      let logCount = 0;
+      for (const log of logs) {
+        if (log.speciesLogs) {
+          for (const sp of log.speciesLogs) {
+            totalDailyFeed += sp.feedAmount || 0;
           }
+          logCount++;
         }
-        return s + total;
-      }, 0) / Math.max(1, logs.length);
+      }
+      const dailyFeed = logCount > 0 ? totalDailyFeed / logCount : 0;
       
       if (dailyFeed > 0) {
         const reorder = calculateReorderPoint(dailyFeed, 5, 5);
@@ -776,9 +768,9 @@ export async function renderDecide(pondId) {
       }
     }
 
-    // ---- 4. Decision Matrix (Maximax/Maximin/Minimax) ----
+    // ---- 4. Decision Matrix (FIXED: Added await) ----
     const currentWeight = status ? status.species.reduce((sum, s) => sum + (s.totalHarvestWeight || 0), 0) : 1000;
-    const currentPrice = 140; // Default, could be from market data
+    const currentPrice = 140;
     
     const scenarios = [
       { label: 'Harvest Now', weight: currentWeight || 1000, price: currentPrice },
@@ -787,8 +779,10 @@ export async function renderDecide(pondId) {
       { label: 'Wait 3 Weeks', weight: (currentWeight || 1000) * 1.15, price: currentPrice * 1.08 }
     ];
 
-    const decisionMatrix = generateDecisionMatrix(pond, logs, harvests, scenarios);
-    if (decisionMatrix) {
+    // 🔥 FIXED: Added await here
+    const decisionMatrix = await generateDecisionMatrix(pond, logs, harvests, scenarios);
+    
+    if (decisionMatrix && decisionMatrix.matrix && decisionMatrix.matrix.length > 0) {
       html += `
         <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #9b59b6;">
           <h4 style="margin-bottom:12px;">🎯 Decision Matrix</h4>
@@ -797,18 +791,18 @@ export async function renderDecide(pondId) {
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:12px;">
             <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #2ecc71;">
               <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Maximax (Risk-Taker)</div>
-              <div style="font-weight:700;">${decisionMatrix.maximax.label}</div>
-              <div style="font-size:0.9rem;">Profit: ${formatCurrency(decisionMatrix.maximax.profit)}</div>
+              <div style="font-weight:700;">${decisionMatrix.maximax ? decisionMatrix.maximax.label : 'N/A'}</div>
+              <div style="font-size:0.9rem;">Profit: ${decisionMatrix.maximax ? formatCurrency(decisionMatrix.maximax.profit) : '—'}</div>
             </div>
             <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #f39c12;">
               <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Maximin (Risk-Averse)</div>
-              <div style="font-weight:700;">${decisionMatrix.maximin.label}</div>
-              <div style="font-size:0.9rem;">Worst-case: ${formatCurrency(decisionMatrix.maximin.worstProfit)}</div>
+              <div style="font-weight:700;">${decisionMatrix.maximin ? decisionMatrix.maximin.label : 'N/A'}</div>
+              <div style="font-size:0.9rem;">Worst-case: ${decisionMatrix.maximin ? formatCurrency(decisionMatrix.maximin.worstProfit) : '—'}</div>
             </div>
             <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #3498db;">
               <div style="font-size:0.7rem;text-transform:uppercase;color:var(--text-muted);">Minimax (Minimize Regret)</div>
-              <div style="font-weight:700;">${decisionMatrix.minimax.label}</div>
-              <div style="font-size:0.9rem;">Regret: ${formatCurrency(decisionMatrix.minimax.regret)}</div>
+              <div style="font-weight:700;">${decisionMatrix.minimax ? decisionMatrix.minimax.label : 'N/A'}</div>
+              <div style="font-size:0.9rem;">Regret: ${decisionMatrix.minimax ? formatCurrency(decisionMatrix.minimax.regret) : '—'}</div>
             </div>
           </div>
           
@@ -840,7 +834,7 @@ export async function renderDecide(pondId) {
           </div>
           
           <div style="font-size:0.8rem;color:var(--text-muted);margin-top:8px;">
-            💡 <strong>Recommendation:</strong> ${decisionMatrix.maximin.label} is safest (Maximin). ${decisionMatrix.maximax.label} gives highest potential profit (Maximax).
+            💡 <strong>Recommendation:</strong> ${decisionMatrix.maximin ? decisionMatrix.maximin.label : 'N/A'} is safest (Maximin). ${decisionMatrix.maximax ? decisionMatrix.maximax.label : 'N/A'} gives highest potential profit (Maximax).
           </div>
         </div>
       `;
