@@ -8,21 +8,46 @@ export const SPECIES = {
     name: 'Bangus (Milkfish)',
     icon: '🐟',
     scientificName: 'Chanos chanos',
+    operationTypes: ['growout', 'nursery'],
     salinityTolerance: { min: 0, max: 40, optimalMin: 20, optimalMax: 30 },
     temperatureTolerance: { min: 20, max: 35, optimalMin: 27, optimalMax: 30 },
     doMin: 3,
     ammoniaMax: 0.5,
     nitriteMax: 0.5,
     nitrateMax: 50,
-    targetFCR: 1.5,
-    targetSurvival: 85,
-    targetDGR: { min: 2, max: 3, unit: 'g/day' },
-    maturityDays: 120,
-    harvestWeightMin: 300,
-    harvestWeightMax: 400,
-    feedTypes: ['Starter', 'Grower', 'Finisher'],
-    notes: 'Saline-tolerant, can be cultured in brackish water',
-    defaultStockingDensity: 7500, // per hectare
+    targetFCR: {
+      growout: 1.5,
+      nursery: 1.2
+    },
+    targetSurvival: {
+      growout: 85,
+      nursery: 90
+    },
+    targetDGR: {
+      growout: { min: 2, max: 3, unit: 'g/day' },
+      nursery: { min: 0.3, max: 0.5, unit: 'g/day' }
+    },
+    maturityDays: {
+      growout: 120,
+      nursery: 45
+    },
+    harvestWeightMin: {
+      growout: 300,
+      nursery: 10
+    },
+    harvestWeightMax: {
+      growout: 400,
+      nursery: 20
+    },
+    feedTypes: {
+      growout: ['Starter', 'Grower', 'Finisher'],
+      nursery: ['Starter']
+    },
+    defaultStockingDensity: {
+      growout: 7500,
+      nursery: 15000
+    },
+    notes: 'Saline-tolerant, can be cultured in brackish water. Nursery operation: fry to fingerlings.',
     color: '#2ecc71'
   },
   tilapiaSaltTolerant: {
@@ -30,21 +55,46 @@ export const SPECIES = {
     name: 'Saline-Tolerant Tilapia',
     icon: '🐠',
     scientificName: 'Oreochromis niloticus',
+    operationTypes: ['growout', 'nursery'],
     salinityTolerance: { min: 0, max: 35, optimalMin: 15, optimalMax: 25 },
     temperatureTolerance: { min: 18, max: 35, optimalMin: 25, optimalMax: 30 },
     doMin: 2.5,
     ammoniaMax: 0.5,
     nitriteMax: 0.5,
     nitrateMax: 50,
-    targetFCR: 1.6,
-    targetSurvival: 80,
-    targetDGR: { min: 1.5, max: 2.5, unit: 'g/day' },
-    maturityDays: 150,
-    harvestWeightMin: 200,
-    harvestWeightMax: 300,
-    feedTypes: ['Starter', 'Grower', 'Finisher'],
-    notes: 'More saline-tolerant than Nile tilapia',
-    defaultStockingDensity: 5000,
+    targetFCR: {
+      growout: 1.6,
+      nursery: 1.3
+    },
+    targetSurvival: {
+      growout: 80,
+      nursery: 85
+    },
+    targetDGR: {
+      growout: { min: 1.5, max: 2.5, unit: 'g/day' },
+      nursery: { min: 0.2, max: 0.4, unit: 'g/day' }
+    },
+    maturityDays: {
+      growout: 150,
+      nursery: 50
+    },
+    harvestWeightMin: {
+      growout: 200,
+      nursery: 8
+    },
+    harvestWeightMax: {
+      growout: 300,
+      nursery: 15
+    },
+    feedTypes: {
+      growout: ['Starter', 'Grower', 'Finisher'],
+      nursery: ['Starter']
+    },
+    defaultStockingDensity: {
+      growout: 5000,
+      nursery: 12000
+    },
+    notes: 'More saline-tolerant than Nile tilapia. Nursery operation: fry to fingerlings.',
     color: '#3498db'
   },
   tilapiaSpinYY: {
@@ -52,21 +102,46 @@ export const SPECIES = {
     name: 'SPIN YY Tilapia',
     icon: '🐠',
     scientificName: 'Oreochromis niloticus',
+    operationTypes: ['growout', 'nursery'],
     salinityTolerance: { min: 0, max: 30, optimalMin: 10, optimalMax: 20 },
     temperatureTolerance: { min: 18, max: 35, optimalMin: 25, optimalMax: 30 },
     doMin: 2.5,
     ammoniaMax: 0.5,
     nitriteMax: 0.5,
     nitrateMax: 50,
-    targetFCR: 1.4,
-    targetSurvival: 90,
-    targetDGR: { min: 2, max: 3, unit: 'g/day' },
-    maturityDays: 130,
-    harvestWeightMin: 250,
-    harvestWeightMax: 350,
-    feedTypes: ['Starter', 'Grower', 'Finisher'],
-    notes: 'All-male tilapia, faster growth, better FCR',
-    defaultStockingDensity: 6000,
+    targetFCR: {
+      growout: 1.4,
+      nursery: 1.1
+    },
+    targetSurvival: {
+      growout: 90,
+      nursery: 92
+    },
+    targetDGR: {
+      growout: { min: 2, max: 3, unit: 'g/day' },
+      nursery: { min: 0.3, max: 0.5, unit: 'g/day' }
+    },
+    maturityDays: {
+      growout: 130,
+      nursery: 45
+    },
+    harvestWeightMin: {
+      growout: 250,
+      nursery: 10
+    },
+    harvestWeightMax: {
+      growout: 350,
+      nursery: 18
+    },
+    feedTypes: {
+      growout: ['Starter', 'Grower', 'Finisher'],
+      nursery: ['Starter']
+    },
+    defaultStockingDensity: {
+      growout: 6000,
+      nursery: 14000
+    },
+    notes: 'All-male tilapia, faster growth, better FCR. Nursery operation available.',
     color: '#9b59b6'
   },
   shrimp: {
@@ -74,21 +149,38 @@ export const SPECIES = {
     name: 'Shrimp (Sugpo/Vanamei)',
     icon: '🦐',
     scientificName: 'Penaeus vannamei',
+    operationTypes: ['growout'],
     salinityTolerance: { min: 0, max: 45, optimalMin: 25, optimalMax: 35 },
     temperatureTolerance: { min: 20, max: 33, optimalMin: 28, optimalMax: 32 },
     doMin: 4,
     ammoniaMax: 0.3,
     nitriteMax: 0.3,
     nitrateMax: 30,
-    targetFCR: 1.2,
-    targetSurvival: 70,
-    targetDGR: { min: 0.5, max: 1, unit: 'g/day' },
-    maturityDays: 90,
-    harvestWeightMin: 30,
-    harvestWeightMax: 40,
-    feedTypes: ['Starter', 'Grower', 'Finisher', 'Specialty'],
-    notes: 'High-value species, sensitive to water quality',
-    defaultStockingDensity: 100000, // per hectare
+    targetFCR: {
+      growout: 1.2
+    },
+    targetSurvival: {
+      growout: 70
+    },
+    targetDGR: {
+      growout: { min: 0.5, max: 1, unit: 'g/day' }
+    },
+    maturityDays: {
+      growout: 90
+    },
+    harvestWeightMin: {
+      growout: 30
+    },
+    harvestWeightMax: {
+      growout: 40
+    },
+    feedTypes: {
+      growout: ['Starter', 'Grower', 'Finisher', 'Specialty']
+    },
+    defaultStockingDensity: {
+      growout: 100000
+    },
+    notes: 'High-value species, sensitive to water quality.',
     color: '#e67e22'
   },
   mudCrab: {
@@ -96,21 +188,38 @@ export const SPECIES = {
     name: 'Mud Crab',
     icon: '🦀',
     scientificName: 'Scylla serrata',
+    operationTypes: ['growout'],
     salinityTolerance: { min: 10, max: 35, optimalMin: 20, optimalMax: 30 },
     temperatureTolerance: { min: 22, max: 35, optimalMin: 26, optimalMax: 32 },
     doMin: 3,
     ammoniaMax: 0.5,
     nitriteMax: 0.5,
     nitrateMax: 50,
-    targetFCR: 2.0,
-    targetSurvival: 60,
-    targetDGR: { min: 0.5, max: 1.5, unit: 'g/day' },
-    maturityDays: 180,
-    harvestWeightMin: 200,
-    harvestWeightMax: 400,
-    feedTypes: ['Trash Fish', 'Pelleted Feed', 'Mollusks'],
-    notes: 'Cannibalistic - requires shelters/hides',
-    defaultStockingDensity: 2000,
+    targetFCR: {
+      growout: 2.0
+    },
+    targetSurvival: {
+      growout: 60
+    },
+    targetDGR: {
+      growout: { min: 0.5, max: 1.5, unit: 'g/day' }
+    },
+    maturityDays: {
+      growout: 180
+    },
+    harvestWeightMin: {
+      growout: 200
+    },
+    harvestWeightMax: {
+      growout: 400
+    },
+    feedTypes: {
+      growout: ['Trash Fish', 'Pelleted Feed', 'Mollusks']
+    },
+    defaultStockingDensity: {
+      growout: 2000
+    },
+    notes: 'Cannibalistic - requires shelters/hides.',
     color: '#e74c3c'
   },
   oyster: {
@@ -118,21 +227,38 @@ export const SPECIES = {
     name: 'Single Shell Oyster',
     icon: '🦪',
     scientificName: 'Crassostrea iredalei',
+    operationTypes: ['growout'],
     salinityTolerance: { min: 15, max: 35, optimalMin: 25, optimalMax: 30 },
     temperatureTolerance: { min: 18, max: 32, optimalMin: 24, optimalMax: 28 },
     doMin: 4,
     ammoniaMax: 0.3,
     nitriteMax: 0.3,
     nitrateMax: 30,
-    targetFCR: null,
-    targetSurvival: 70,
-    targetDGR: null,
-    maturityDays: 180,
-    harvestWeightMin: 50,
-    harvestWeightMax: 100,
-    feedTypes: ['Phytoplankton'],
+    targetFCR: {
+      growout: null
+    },
+    targetSurvival: {
+      growout: 70
+    },
+    targetDGR: {
+      growout: null
+    },
+    maturityDays: {
+      growout: 180
+    },
+    harvestWeightMin: {
+      growout: 50
+    },
+    harvestWeightMax: {
+      growout: 100
+    },
+    feedTypes: {
+      growout: ['Phytoplankton']
+    },
+    defaultStockingDensity: {
+      growout: 20000
+    },
     notes: 'Filter feeder - improves water quality. No feed cost.',
-    defaultStockingDensity: 20000,
     color: '#1abc9c'
   }
 };
@@ -143,7 +269,8 @@ export function getSpeciesList() {
     id: s.id,
     name: s.name,
     icon: s.icon,
-    color: s.color
+    color: s.color,
+    operationTypes: s.operationTypes || ['growout']
   }));
 }
 
@@ -166,6 +293,43 @@ export function getSpeciesColor(id) {
   return s ? s.color : '#2ecc71';
 }
 
+export function getOperationTypes() {
+  return [
+    { id: 'growout', label: 'Grow-out (Harvest to Market Size)', icon: '🌾' },
+    { id: 'nursery', label: 'Nursery (Fry to Fingerlings)', icon: '🐣' }
+  ];
+}
+
+export function getOperationTypeLabel(id) {
+  const types = getOperationTypes();
+  const found = types.find(t => t.id === id);
+  return found ? found.label : id;
+}
+
+export function getSpeciesForOperation(operationType) {
+  return Object.values(SPECIES)
+    .filter(s => s.operationTypes && s.operationTypes.includes(operationType))
+    .map(s => ({ id: s.id, name: s.name, icon: s.icon, color: s.color }));
+}
+
+export function getSpeciesTargets(speciesId, operationType) {
+  const s = getSpecies(speciesId);
+  if (!s) return null;
+  
+  const op = operationType || 'growout';
+  
+  return {
+    targetFCR: s.targetFCR?.[op] || s.targetFCR?.growout || null,
+    targetSurvival: s.targetSurvival?.[op] || s.targetSurvival?.growout || null,
+    targetDGR: s.targetDGR?.[op] || s.targetDGR?.growout || null,
+    maturityDays: s.maturityDays?.[op] || s.maturityDays?.growout || null,
+    harvestWeightMin: s.harvestWeightMin?.[op] || s.harvestWeightMin?.growout || null,
+    harvestWeightMax: s.harvestWeightMax?.[op] || s.harvestWeightMax?.growout || null,
+    feedTypes: s.feedTypes?.[op] || s.feedTypes?.growout || [],
+    defaultStockingDensity: s.defaultStockingDensity?.[op] || s.defaultStockingDensity?.growout || null
+  };
+}
+
 export function isSalinityCompatible(speciesId, salinity) {
   const s = getSpecies(speciesId);
   if (!s) return false;
@@ -184,21 +348,18 @@ export function getPolycultureCompatibility(speciesIds) {
     return { compatible: true, message: 'Single species only' };
   }
 
-  // Check salinity compatibility
   const salinityRanges = speciesList.map(s => s.salinityTolerance);
   const salinityOverlap = salinityRanges.every(r =>
     r.min <= Math.max(...salinityRanges.map(r => r.min)) &&
     r.max >= Math.min(...salinityRanges.map(r => r.max))
   );
 
-  // Check temperature compatibility
   const tempRanges = speciesList.map(s => s.temperatureTolerance);
   const tempOverlap = tempRanges.every(r =>
     r.min <= Math.max(...tempRanges.map(r => r.min)) &&
     r.max >= Math.min(...tempRanges.map(r => r.max))
   );
 
-  // Check for aggressive species (crab)
   const hasCrab = speciesList.some(s => s.id === 'mudCrab');
   const hasShrimp = speciesList.some(s => s.id === 'shrimp');
 
@@ -223,57 +384,4 @@ export function getPolycultureCompatibility(speciesIds) {
       species: speciesList.map(s => s.name).join(', ')
     }
   };
-}
-
-export function getSpeciesRecommendations(speciesId, logData, status) {
-  const s = getSpecies(speciesId);
-  if (!s) return [];
-
-  const recs = [];
-
-  // Salinity check
-  if (logData.salinity !== undefined && logData.salinity !== null) {
-    if (logData.salinity < s.salinityTolerance.optimalMin ||
-      logData.salinity > s.salinityTolerance.optimalMax) {
-      recs.push(`⚠️ Salinity (${logData.salinity} ppt) is outside ${s.name}'s optimal range (${s.salinityTolerance.optimalMin}-${s.salinityTolerance.optimalMax} ppt)`);
-    }
-    if (logData.salinity < s.salinityTolerance.min ||
-      logData.salinity > s.salinityTolerance.max) {
-      recs.push(`🚨 Salinity (${logData.salinity} ppt) is outside ${s.name}'s survival range!`);
-    }
-  }
-
-  // Temperature check
-  if (logData.temp !== undefined && logData.temp !== null) {
-    if (logData.temp < s.temperatureTolerance.optimalMin ||
-      logData.temp > s.temperatureTolerance.optimalMax) {
-      recs.push(`⚠️ Temperature (${logData.temp}°C) is outside ${s.name}'s optimal range (${s.temperatureTolerance.optimalMin}-${s.temperatureTolerance.optimalMax}°C)`);
-    }
-    if (logData.temp < s.temperatureTolerance.min ||
-      logData.temp > s.temperatureTolerance.max) {
-      recs.push(`🚨 Temperature (${logData.temp}°C) is outside ${s.name}'s survival range!`);
-    }
-  }
-
-  // DO check
-  if (logData.do !== undefined && logData.do !== null && logData.do < s.doMin) {
-    recs.push(`🚨 DO (${logData.do} ppm) is below ${s.name}'s minimum (${s.doMin} ppm)`);
-  }
-
-  // Ammonia check
-  if (logData.ammonia !== undefined && logData.ammonia !== null && logData.ammonia > s.ammoniaMax) {
-    recs.push(`⚠️ Ammonia (${logData.ammonia} ppm) exceeds ${s.name}'s maximum (${s.ammoniaMax} ppm)`);
-  }
-
-  // FCR check
-  if (status && status.fcr !== null && s.targetFCR && status.fcr > s.targetFCR) {
-    recs.push(`⚠️ FCR (${status.fcr}) is above ${s.name}'s target (${s.targetFCR})`);
-  }
-
-  // Survival check
-  if (status && status.survival !== null && status.survival < s.targetSurvival) {
-    recs.push(`⚠️ Survival (${status.survival}%) is below ${s.name}'s target (${s.targetSurvival}%)`);
-  }
-
-  return recs;
 }
