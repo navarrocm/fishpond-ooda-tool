@@ -3,7 +3,10 @@
 // ============================================================
 
 import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals } from './db.js';
-import { getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor } from './species.js';
+import { 
+  getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor, 
+  getSpeciesForOperation, getOperationTypes, getOperationTypeLabel, getSpeciesTargets 
+} from './species.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 import { renderPrep } from './prep.js';
 
@@ -65,6 +68,8 @@ export async function renderPondList() {
     const area = formatNumber(pond.area, 2);
     const speciesList = pond.species ? pond.species.map(s => getSpeciesName(s.speciesId)).join(', ') : 'No species';
     const hasHarvest = harvests && harvests.length > 0;
+    const opType = pond.operationType || 'growout';
+    const opLabel = getOperationTypeLabel(opType);
     
     let totalStocked = 0;
     if (pond.species) {
@@ -77,6 +82,7 @@ export async function renderPondList() {
       <div class="pond-card" data-pond-id="${escapeHtml(pond.id)}">
         <div class="name">${name}</div>
         <div class="species">${speciesList} • ${area}ha</div>
+        <div class="metric">📋 ${opLabel}</div>
         <span class="status green">${hasHarvest ? 'Harvested' : 'Active'}</span>
         ${hasHarvest ? `<span class="harvested-badge">Harvested</span>` : ''}
         <div class="metric">📅 ${pond.stockingDate || 'Not stocked yet'}</div>
@@ -106,6 +112,9 @@ export async function showPondDetail(pondId) {
   const container = document.getElementById('pond-detail');
   container.style.display = 'block';
   
+  const opType = pond.operationType || 'growout';
+  const opLabel = getOperationTypeLabel(opType);
+  
   let speciesHtml = '';
   if (pond.species && pond.species.length > 0) {
     speciesHtml = `
@@ -133,6 +142,7 @@ export async function showPondDetail(pondId) {
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:12px;">
       <div><strong>Location:</strong> ${escapeHtml(pond.location || 'N/A')}</div>
       <div><strong>Area:</strong> ${formatNumber(pond.area, 2)}ha</div>
+      <div><strong>Operation:</strong> ${opLabel}</div>
       <div><strong>Harvested:</strong> ${pond.harvested ? '✅ Yes' : 'No'}</div>
     </div>
     ${speciesHtml}
@@ -142,13 +152,20 @@ export async function showPondDetail(pondId) {
   `;
 }
 
-// ---- Show Add Pond Modal ----
+// ---- Show Add Pond Modal (Updated with Operation Type) ----
 export function showAddPondModal() {
   const modal = document.getElementById('modal');
   const body = document.getElementById('modal-body');
   modal.style.display = 'flex';
   
-  const speciesOptions = getSpeciesList().map(s => 
+  const operationTypes = getOperationTypes();
+  const operationOptions = operationTypes.map(t => 
+    `<option value="${t.id}">${t.icon} ${t.label}</option>`
+  ).join('');
+  
+  // Initial species list (all species, will be filtered by operation type)
+  const allSpecies = getSpeciesList();
+  const initialSpeciesOptions = allSpecies.map(s => 
     `<option value="${s.id}">${s.icon} ${s.name}</option>`
   ).join('');
   
@@ -162,7 +179,21 @@ export function showAddPondModal() {
       </div>
       
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <h4>Operation Type</h4>
+        <div class="form-group">
+          <select id="pond-operation-type" required>
+            <option value="">Select operation type</option>
+            ${operationOptions}
+          </select>
+          <span class="hint">Grow-out: harvest at market size. Nursery: fry to fingerlings (30-60 days).</span>
+        </div>
+      </div>
+      
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
         <h4>Species in this pond</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">
+          Available species depend on the operation type selected above.
+        </p>
         <div id="species-list-container">
           <div class="species-entry" data-index="0" style="background:var(--bg);padding:8px;border-radius:8px;margin-bottom:8px;">
             <div class="form-row">
@@ -170,11 +201,11 @@ export function showAddPondModal() {
                 <label>Species *</label>
                 <select class="species-select" data-index="0" required>
                   <option value="">Select species</option>
-                  ${speciesOptions}
+                  ${initialSpeciesOptions}
                 </select>
               </div>
               <div class="form-group">
-                <label>Fingerlings *</label>
+                <label>Fingerlings/Fry *</label>
                 <input type="number" class="species-fingerlings" data-index="0" required placeholder="e.g., 5000">
               </div>
             </div>
@@ -186,6 +217,7 @@ export function showAddPondModal() {
               <div class="form-group">
                 <label>Stocking Weight (g)</label>
                 <input type="number" class="species-stocking-weight" data-index="0" step="0.1" placeholder="e.g., 5">
+                <span class="hint">Fry: 1-2g • Fingerlings: 5-10g</span>
               </div>
             </div>
             <button type="button" class="remove-species-entry small-btn delete" data-index="0">Remove</button>
@@ -198,24 +230,48 @@ export function showAddPondModal() {
     </form>
   `;
   
+  // ---- Filter species by operation type ----
+  document.getElementById('pond-operation-type')?.addEventListener('change', function() {
+    const operationType = this.value;
+    const speciesSelects = document.querySelectorAll('.species-select');
+    const availableSpecies = operationType ? getSpeciesForOperation(operationType) : getSpeciesList();
+    
+    for (const select of speciesSelects) {
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">Select species</option>';
+      for (const s of availableSpecies) {
+        select.innerHTML += `<option value="${s.id}" ${s.id === currentVal ? 'selected' : ''}>${s.icon} ${s.name}</option>`;
+      }
+    }
+  });
+  
+  // ---- Add species entry ----
   let speciesIndex = 1;
   document.getElementById('add-species-entry-btn').addEventListener('click', () => {
     const container = document.getElementById('species-list-container');
+    const operationType = document.getElementById('pond-operation-type')?.value || '';
+    const availableSpecies = operationType ? getSpeciesForOperation(operationType) : getSpeciesList();
+    
     const entry = document.createElement('div');
     entry.className = 'species-entry';
     entry.dataset.index = speciesIndex;
     entry.style.cssText = 'background:var(--bg);padding:8px;border-radius:8px;margin-bottom:8px;';
+    
+    let speciesOptionsHtml = '<option value="">Select species</option>';
+    for (const s of availableSpecies) {
+      speciesOptionsHtml += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+    }
+    
     entry.innerHTML = `
       <div class="form-row">
         <div class="form-group">
           <label>Species *</label>
           <select class="species-select" data-index="${speciesIndex}" required>
-            <option value="">Select species</option>
-            ${speciesOptions}
+            ${speciesOptionsHtml}
           </select>
         </div>
         <div class="form-group">
-          <label>Fingerlings *</label>
+          <label>Fingerlings/Fry *</label>
           <input type="number" class="species-fingerlings" data-index="${speciesIndex}" required placeholder="e.g., 5000">
         </div>
       </div>
@@ -250,15 +306,17 @@ export function showAddPondModal() {
   }
   updateSpeciesRemoveButtons();
   
+  // ---- Submit handler ----
   document.getElementById('add-pond-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     
     const name = document.getElementById('pond-name').value.trim();
     const area = validateNumber(document.getElementById('pond-area').value, 0);
     const location = document.getElementById('pond-location').value.trim() || '';
+    const operationType = document.getElementById('pond-operation-type').value;
     
-    if (!name || !area) {
-      alert('Please fill in all required fields.');
+    if (!name || !area || !operationType) {
+      alert('Please fill in all required fields (Pond Name, Area, Operation Type).');
       return;
     }
     
@@ -273,6 +331,7 @@ export function showAddPondModal() {
         hasSpecies = true;
         species.push({
           speciesId: speciesId,
+          operationType: operationType,
           stockingDate: entry.querySelector('.species-stocking-date').value || new Date().toISOString().split('T')[0],
           fingerlings: fingerlings,
           stockingWeight: validateNumber(entry.querySelector('.species-stocking-weight').value, 0)
@@ -281,7 +340,7 @@ export function showAddPondModal() {
     }
     
     if (!hasSpecies) {
-      alert('Please add at least one species with fingerlings.');
+      alert('Please add at least one species with fingerlings/fry.');
       return;
     }
     
@@ -289,6 +348,7 @@ export function showAddPondModal() {
       name: name,
       area: area,
       location: location,
+      operationType: operationType,
       species: species,
       harvested: false,
       createdAt: new Date().toISOString()
@@ -302,7 +362,7 @@ export function showAddPondModal() {
   });
 }
 
-// ---- Edit Pond ----
+// ---- Edit Pond (Updated with Operation Type) ----
 export async function editPond(pondId) {
   const pond = await getById('ponds', pondId);
   if (!pond) return;
@@ -310,7 +370,14 @@ export async function editPond(pondId) {
   const body = document.getElementById('modal-body');
   modal.style.display = 'flex';
   
-  const speciesOptions = getSpeciesList().map(s => 
+  const operationTypes = getOperationTypes();
+  const operationOptions = operationTypes.map(t => 
+    `<option value="${t.id}" ${t.id === pond.operationType ? 'selected' : ''}>${t.icon} ${t.label}</option>`
+  ).join('');
+  
+  // Get species for current operation type
+  const availableSpecies = pond.operationType ? getSpeciesForOperation(pond.operationType) : getSpeciesList();
+  const speciesOptions = availableSpecies.map(s => 
     `<option value="${s.id}">${s.icon} ${s.name}</option>`
   ).join('');
   
@@ -327,7 +394,7 @@ export async function editPond(pondId) {
             </select>
           </div>
           <div class="form-group">
-            <label>Fingerlings *</label>
+            <label>Fingerlings/Fry *</label>
             <input type="number" class="species-fingerlings" data-index="${idx}" value="${sp.fingerlings || 0}" required placeholder="e.g., 5000">
           </div>
         </div>
@@ -359,7 +426,20 @@ export async function editPond(pondId) {
       </div>
       
       <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+        <h4>Operation Type</h4>
+        <div class="form-group">
+          <select id="edit-pond-operation-type" required>
+            ${operationOptions}
+          </select>
+          <span class="hint">Changing operation type will filter available species.</span>
+        </div>
+      </div>
+      
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
         <h4>Species in this pond</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:8px;">
+          Available species depend on the operation type selected above.
+        </p>
         <div id="species-list-container">
           ${speciesHtml}
         </div>
@@ -370,24 +450,48 @@ export async function editPond(pondId) {
     </form>
   `;
   
+  // ---- Filter species by operation type (edit) ----
+  document.getElementById('edit-pond-operation-type')?.addEventListener('change', function() {
+    const operationType = this.value;
+    const speciesSelects = document.querySelectorAll('#species-list-container .species-select');
+    const availableSpecies = operationType ? getSpeciesForOperation(operationType) : getSpeciesList();
+    
+    for (const select of speciesSelects) {
+      const currentVal = select.value;
+      select.innerHTML = '<option value="">Select species</option>';
+      for (const s of availableSpecies) {
+        select.innerHTML += `<option value="${s.id}" ${s.id === currentVal ? 'selected' : ''}>${s.icon} ${s.name}</option>`;
+      }
+    }
+  });
+  
+  // ---- Add species entry (edit) ----
   let speciesIndex = pond.species ? pond.species.length : 0;
   document.getElementById('add-species-entry-btn').addEventListener('click', () => {
     const container = document.getElementById('species-list-container');
+    const operationType = document.getElementById('edit-pond-operation-type')?.value || 'growout';
+    const availableSpecies = getSpeciesForOperation(operationType);
+    
     const entry = document.createElement('div');
     entry.className = 'species-entry';
     entry.dataset.index = speciesIndex;
     entry.style.cssText = 'background:var(--bg);padding:8px;border-radius:8px;margin-bottom:8px;';
+    
+    let speciesOptionsHtml = '<option value="">Select species</option>';
+    for (const s of availableSpecies) {
+      speciesOptionsHtml += `<option value="${s.id}">${s.icon} ${s.name}</option>`;
+    }
+    
     entry.innerHTML = `
       <div class="form-row">
         <div class="form-group">
           <label>Species *</label>
           <select class="species-select" data-index="${speciesIndex}" required>
-            <option value="">Select species</option>
-            ${speciesOptions}
+            ${speciesOptionsHtml}
           </select>
         </div>
         <div class="form-group">
-          <label>Fingerlings *</label>
+          <label>Fingerlings/Fry *</label>
           <input type="number" class="species-fingerlings" data-index="${speciesIndex}" required placeholder="e.g., 5000">
         </div>
       </div>
@@ -428,8 +532,9 @@ export async function editPond(pondId) {
     const name = document.getElementById('edit-pond-name').value.trim();
     const area = validateNumber(document.getElementById('edit-pond-area').value, 0);
     const location = document.getElementById('edit-pond-location').value.trim() || '';
+    const operationType = document.getElementById('edit-pond-operation-type').value;
     
-    if (!name || !area) {
+    if (!name || !area || !operationType) {
       alert('Please fill in all required fields.');
       return;
     }
@@ -445,6 +550,7 @@ export async function editPond(pondId) {
         hasSpecies = true;
         species.push({
           speciesId: speciesId,
+          operationType: operationType,
           stockingDate: entry.querySelector('.species-stocking-date').value || new Date().toISOString().split('T')[0],
           fingerlings: fingerlings,
           stockingWeight: validateNumber(entry.querySelector('.species-stocking-weight').value, 0)
@@ -453,7 +559,7 @@ export async function editPond(pondId) {
     }
     
     if (!hasSpecies) {
-      alert('Please add at least one species with fingerlings.');
+      alert('Please add at least one species with fingerlings/fry.');
       return;
     }
     
@@ -462,6 +568,7 @@ export async function editPond(pondId) {
       name: name,
       area: area,
       location: location,
+      operationType: operationType,
       species: species
     };
     
@@ -560,7 +667,7 @@ export async function renderAnalysis(pondId) {
     let html = `
       <h3 style="margin-bottom:12px;">${escapeHtml(status.name)}</h3>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
-        ${status.area}ha • ${status.species.length} species • ${status.latestWaterQuality ? `Last reading: ${status.latestWaterQuality.date}` : 'No water quality data'}
+        ${status.area}ha • ${status.operationLabel} • ${status.species.length} species • ${status.latestWaterQuality ? `Last reading: ${status.latestWaterQuality.date}` : 'No water quality data'}
       </p>
     `;
 
@@ -585,18 +692,23 @@ export async function renderAnalysis(pondId) {
     html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
     for (const sp of status.species) {
       const color = sp.speciesColor || '#666';
+      const targets = getSpeciesTargets(sp.speciesId, status.operationType);
+      const targetSurvival = targets?.targetSurvival || null;
+      const targetFCR = targets?.targetFCR || null;
+      
       html += `
         <div style="background:var(--card-bg);padding:12px;border-radius:8px;box-shadow:var(--shadow);border-left:4px solid ${color};">
           <div style="font-weight:600;">${sp.speciesIcon || '🐟'} ${sp.speciesName}</div>
           <div style="font-size:0.85rem;color:var(--text-light);">
             Stocked: ${sp.originalStocked || 0}<br>
-            ${sp.survival !== null ? `Survival: ${sp.survival}%` : 'No data'}<br>
-            ${sp.fcr !== null ? `FCR: ${sp.fcr}` : 'No data'}<br>
+            ${sp.survival !== null ? `Survival: ${sp.survival}% ${targetSurvival ? `(target ${targetSurvival}%)` : ''}` : 'No data'}<br>
+            ${sp.fcr !== null ? `FCR: ${sp.fcr} ${targetFCR ? `(target ${targetFCR})` : ''}` : 'No data'}<br>
             ${sp.totalRevenue > 0 ? `Revenue: ${formatCurrency(sp.totalRevenue)}` : 'No harvest'}
           </div>
           <div style="font-size:0.75rem;color:${sp.statusColor === 'red' ? '#e74c3c' : sp.statusColor === 'yellow' ? '#f39c12' : '#2ecc71'};margin-top:4px;">
             ${sp.statusText}
           </div>
+          ${sp.operationType === 'nursery' ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">🐣 Nursery: ${sp.daysInCycle || 0} days</div>` : ''}
         </div>
       `;
     }
@@ -677,10 +789,13 @@ export async function renderDecide(pondId) {
     const harvests = await getByIndex('harvests', 'pondId', pondId);
     const status = await getPondStatusOODA(pondId);
 
+    const opLabel = status ? status.operationLabel : getOperationTypeLabel(pond.operationType || 'growout');
+    const isNursery = (pond.operationType || 'growout') === 'nursery';
+
     let html = `
       <h3 style="margin-bottom:12px;">🧠 Decision Support - ${escapeHtml(pond.name)}</h3>
       <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">
-        Data-driven decision tools for better farm management.
+        ${isNursery ? '🐣 Nursery operation' : '🌾 Grow-out operation'} • Data-driven decision tools for better farm management.
       </p>
     `;
 
@@ -773,10 +888,10 @@ export async function renderDecide(pondId) {
     const currentPrice = 140;
     
     const scenarios = [
-      { label: 'Harvest Now', weight: currentWeight || 1000, price: currentPrice },
-      { label: 'Wait 1 Week', weight: (currentWeight || 1000) * 1.05, price: currentPrice * 1.02 },
-      { label: 'Wait 2 Weeks', weight: (currentWeight || 1000) * 1.10, price: currentPrice * 1.05 },
-      { label: 'Wait 3 Weeks', weight: (currentWeight || 1000) * 1.15, price: currentPrice * 1.08 }
+      { label: isNursery ? 'Sell Now' : 'Harvest Now', weight: currentWeight || 1000, price: currentPrice },
+      { label: isNursery ? 'Wait 1 Week' : 'Wait 1 Week', weight: (currentWeight || 1000) * 1.05, price: currentPrice * 1.02 },
+      { label: isNursery ? 'Wait 2 Weeks' : 'Wait 2 Weeks', weight: (currentWeight || 1000) * 1.10, price: currentPrice * 1.05 },
+      { label: isNursery ? 'Wait 3 Weeks' : 'Wait 3 Weeks', weight: (currentWeight || 1000) * 1.15, price: currentPrice * 1.08 }
     ];
 
     const decisionMatrix = await generateDecisionMatrix(pond, logs, harvests, scenarios);
@@ -785,7 +900,7 @@ export async function renderDecide(pondId) {
       html += `
         <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #9b59b6;">
           <h4 style="margin-bottom:12px;">🎯 Decision Matrix</h4>
-          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Compare harvest timing options based on your risk preference:</p>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">Compare ${isNursery ? 'fingerling sale' : 'harvest'} timing options based on your risk preference:</p>
           
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:12px;">
             <div style="background:var(--bg);padding:12px;border-radius:8px;border-left:4px solid #2ecc71;">
@@ -810,7 +925,7 @@ export async function renderDecide(pondId) {
               <thead>
                 <tr style="background:var(--primary);color:#fff;">
                   <th style="padding:6px 10px;text-align:left;">Option</th>
-                  <th style="padding:6px 10px;text-align:right;">Harvest (kg)</th>
+                  <th style="padding:6px 10px;text-align:right;">Weight (kg)</th>
                   <th style="padding:6px 10px;text-align:right;">Price (₱/kg)</th>
                   <th style="padding:6px 10px;text-align:right;">Revenue</th>
                   <th style="padding:6px 10px;text-align:right;">Profit</th>
@@ -840,34 +955,33 @@ export async function renderDecide(pondId) {
     }
 
     // ---- 5. USER-CONFIGURABLE COST-BENEFIT ANALYSIS ----
-    // Calculate current profit to suggest a default benefit
     const currentProfit = status ? status.totalRevenue - status.totalCost : 0;
-    const suggestedBenefit = currentProfit > 0 ? Math.round(currentProfit * 0.15) : 0;
+    const suggestedBenefit = currentProfit > 0 ? Math.round(currentProfit * 0.15) : (isNursery ? 5000 : 12000);
 
     html += `
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
         <h4 style="margin-bottom:12px;">💰 Cost-Benefit Analysis</h4>
         <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:12px;">
-          Evaluate an investment decision. Enter the costs and expected benefits below.
+          ${isNursery ? 'Evaluate a nursery investment (e.g., fry grading equipment, nursery tanks).' : 'Evaluate an investment decision (e.g., aerator, better feed, equipment).'}
         </p>
         
         <form id="cba-form">
           <div class="form-row">
             <div class="form-group">
               <label>Investment Cost (₱) *</label>
-              <input type="number" id="cba-investment" step="1" value="15000" required placeholder="e.g., 15000">
+              <input type="number" id="cba-investment" step="1" value="${isNursery ? '8000' : '15000'}" required placeholder="e.g., 15000">
               <span class="hint">Total cost of the investment (equipment, installation).</span>
             </div>
             <div class="form-group">
               <label>Expected Benefit per Cycle (₱) *</label>
               <input type="number" id="cba-benefit" step="1" value="${suggestedBenefit || 12000}" required placeholder="e.g., 12000">
-              <span class="hint">Estimated additional profit per harvest cycle.</span>
+              <span class="hint">Estimated additional profit per harvest/nursery cycle.</span>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
               <label>Expected Lifespan (cycles)</label>
-              <input type="number" id="cba-lifespan" step="1" value="3" min="1" max="20">
+              <input type="number" id="cba-lifespan" step="1" value="${isNursery ? '2' : '3'}" min="1" max="20">
               <span class="hint">How many cycles the investment will last.</span>
             </div>
             <div class="form-group">
@@ -903,7 +1017,7 @@ export async function renderDecide(pondId) {
       
       const investment = validateNumber(document.getElementById('cba-investment').value);
       const benefit = validateNumber(document.getElementById('cba-benefit').value);
-      const lifespan = validateNumber(document.getElementById('cba-lifespan').value, 3);
+      const lifespan = validateNumber(document.getElementById('cba-lifespan').value, isNursery ? 2 : 3);
       const discount = validateNumber(document.getElementById('cba-discount').value, 10) / 100;
       
       if (!investment || investment <= 0) {
@@ -963,16 +1077,14 @@ export function renderHelp() {
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
         <h3 style="margin-bottom:8px;color:#3498db;">Getting Started</h3>
         <p><strong>Q: How do I start using the app?</strong></p>
-        <p>A: First, add a pond using the Dashboard. Select species and stocking details.</p>
-        <p style="margin-top:8px;"><strong>Q: Can I have multiple species in one pond?</strong></p>
-        <p>A: Yes! When adding a pond, you can add multiple species for polyculture.</p>
-        <p style="margin-top:8px;"><strong>Q: What's the sample data?</strong></p>
-        <p>A: Go to Settings → Load Sample Data. Creates a demo pond with multiple species.</p>
+        <p>A: First, add a pond using the Dashboard. Select operation type (Grow-out or Nursery) and species.</p>
+        <p style="margin-top:8px;"><strong>Q: What's the difference between Grow-out and Nursery?</strong></p>
+        <p>A: Grow-out is harvest at market size (120+ days). Nursery is fry to fingerlings (30-60 days, faster profit).</p>
       </div>
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
         <h3 style="margin-bottom:8px;color:#2ecc71;">Species & Polyculture</h3>
         <p><strong>Q: What species are supported?</strong></p>
-        <p>A: Bangus, Saline-Tolerant Tilapia, SPIN YY Tilapia, Shrimp, Mud Crab, and Oyster.</p>
+        <p>A: Bangus, Tilapia (Saline-Tolerant, SPIN YY), Shrimp, Mud Crab, and Oyster.</p>
         <p style="margin-top:8px;"><strong>Q: Can I track different species separately?</strong></p>
         <p>A: Yes. Each log entry has species-specific sections for weight, mortality, and feed.</p>
       </div>
@@ -980,17 +1092,6 @@ export function renderHelp() {
         <h3 style="margin-bottom:8px;color:#f39c12;">Data Safety</h3>
         <p><strong>Q: How do I back up my data?</strong></p>
         <p>A: Go to Settings → Export Data. Save the JSON file to your computer.</p>
-        <p style="margin-top:8px;"><strong>Q: What happens if I clear my browser cache?</strong></p>
-        <p>A: Your data will be lost. Always export regularly!</p>
-      </div>
-      <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #9b59b6;">
-        <h3 style="margin-bottom:8px;color:#9b59b6;">Cost-Benefit Analysis</h3>
-        <p><strong>Q: How does the Cost-Benefit Analysis work?</strong></p>
-        <p>A: Enter the investment cost, expected benefit per cycle, lifespan, and discount rate. The app calculates NPV, payback period, ROI, and benefit-cost ratio.</p>
-        <p style="margin-top:8px;"><strong>Q: What is NPV?</strong></p>
-        <p>A: Net Present Value — the total value of the investment in today's pesos. Positive NPV means the investment is worthwhile.</p>
-        <p style="margin-top:8px;"><strong>Q: What discount rate should I use?</strong></p>
-        <p>A: Use 10% as a default. This represents the opportunity cost of your capital (what you could earn elsewhere).</p>
       </div>
     </div>
   `;
