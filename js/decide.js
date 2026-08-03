@@ -1,11 +1,9 @@
 // ============================================================
 // DECISION SUPPORT ENGINE - MBA Concepts
 // ============================================================
-// NOTE: This module no longer depends on ooda.js exports.
-// All calculations are self-contained.
 
 import { getById, getSpeciesTotals, getByIndex } from './db.js';
-import { getSpecies, getSpeciesName } from './species.js';
+import { getSpecies, getSpeciesName, getSpeciesTargets, getOperationTypeLabel } from './species.js';
 import { validateNumber, formatCurrency, formatNumber } from './utils.js';
 
 // ---- Helper: Get total cost from logs ----
@@ -34,7 +32,7 @@ async function getHarvestData(pondId) {
   return { totalWeight, totalRevenue };
 }
 
-// ---- RISK PREFERENCE MATRIX (Maximax/Maximin/Minimax) ----
+// ---- RISK PREFERENCE MATRIX ----
 export async function generateDecisionMatrix(pond, logs, harvests, scenarios) {
   const totalCost = await getPondCosts(pond.id);
   const baseCost = totalCost || 0;
@@ -118,7 +116,7 @@ export function calculateCostBenefit(investmentCost, annualBenefit, lifespan = 3
   };
 }
 
-// ---- REORDER POINT (Supply Chain) ----
+// ---- REORDER POINT ----
 export function calculateReorderPoint(dailyConsumption, leadTimeDays, safetyStockDays = 5) {
   const safetyStock = dailyConsumption * safetyStockDays;
   const leadTimeDemand = dailyConsumption * leadTimeDays;
@@ -142,7 +140,6 @@ export function calculatePondHealthScore(logs, weights) {
   const availableMetrics = [];
   const details = {};
   
-  // Temperature
   const temps = recent.map(l => validateNumber(l.temp)).filter(v => v !== null);
   if (temps.length > 0) {
     const avgTemp = temps.reduce((a, b) => a + b, 0) / temps.length;
@@ -152,7 +149,6 @@ export function calculatePondHealthScore(logs, weights) {
     details.temp = { value: Math.round(avgTemp * 10) / 10, count: temps.length };
   }
   
-  // pH
   const phs = recent.map(l => validateNumber(l.ph)).filter(v => v !== null);
   if (phs.length > 0) {
     const avgPh = phs.reduce((a, b) => a + b, 0) / phs.length;
@@ -162,7 +158,6 @@ export function calculatePondHealthScore(logs, weights) {
     details.ph = { value: Math.round(avgPh * 10) / 10, count: phs.length };
   }
   
-  // Dissolved Oxygen
   const dos = recent.map(l => validateNumber(l.do)).filter(v => v !== null);
   if (dos.length > 0) {
     const avgDo = dos.reduce((a, b) => a + b, 0) / dos.length;
@@ -171,7 +166,6 @@ export function calculatePondHealthScore(logs, weights) {
     details.do = { value: Math.round(avgDo * 10) / 10, count: dos.length };
   }
   
-  // Salinity
   const salinities = recent.map(l => validateNumber(l.salinity)).filter(v => v !== null);
   if (salinities.length > 0) {
     const avgSalinity = salinities.reduce((a, b) => a + b, 0) / salinities.length;
@@ -181,7 +175,6 @@ export function calculatePondHealthScore(logs, weights) {
     details.salinity = { value: Math.round(avgSalinity * 10) / 10, count: salinities.length };
   }
   
-  // Ammonia
   const ammonias = recent.map(l => validateNumber(l.ammonia)).filter(v => v !== null);
   if (ammonias.length > 0) {
     const avgAmmonia = ammonias.reduce((a, b) => a + b, 0) / ammonias.length;
@@ -229,7 +222,7 @@ export function calculatePondHealthScore(logs, weights) {
   };
 }
 
-// ---- HISTORICAL AVERAGES (Law of Averages) ----
+// ---- HISTORICAL AVERAGES ----
 export function calculateHistoricalAverages(pond, logs, harvests) {
   if (!logs || logs.length === 0) return null;
   
