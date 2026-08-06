@@ -38,7 +38,7 @@ export function openDB() {
         store.createIndex('doc', 'doc');
       }
 
-      // --- Sampling Events Store (NEW) ---
+      // --- Sampling Events Store ---
       if (!db.objectStoreNames.contains('samplingEvents')) {
         const store = db.createObjectStore('samplingEvents', { keyPath: 'id' });
         store.createIndex('pondId', 'pondId');
@@ -209,6 +209,12 @@ export async function importAllData(data) {
   for (const prep of data.prepLogs || []) await add('prepLogs', prep);
 }
 
+// ---- Get Species Log from Entry (FIXED - This was missing) ----
+export function getSpeciesLogFromEntry(log, speciesId) {
+  if (!log || !log.speciesLogs) return null;
+  return log.speciesLogs.find(s => s.speciesId === speciesId) || null;
+}
+
 // ---- Get Latest Sampling Event ----
 export async function getLatestSampling(pondId, speciesId) {
   const all = await getByIndex('samplingEvents', 'pondId_speciesId', [pondId, speciesId]);
@@ -235,4 +241,104 @@ export async function getCurrentBiomass(pondId, speciesId) {
   };
 }
 
-console.log('✅ db.js loaded with sampling support');
+// ---- Get Species Totals ----
+export async function getSpeciesTotals(pondId, speciesId) {
+  const logs = await getByIndex('dailyLogs', 'pondId', pondId);
+  const harvests = await getByIndex('harvests', 'pondId', pondId);
+  const speciesHarvests = harvests.filter(h => h.speciesId === speciesId);
+
+  let totalFeed = 0;
+  let totalFeedCost = 0;
+  let totalMortality = 0;
+  let latestWeight = 0;
+  let logCount = 0;
+  let doc = 0;
+
+  for (const log of logs) {
+    const sp = getSpeciesLogFromEntry(log, speciesId);
+    if (sp) {
+      totalFeed += sp.feedAmount || 0;
+      totalFeedCost += sp.feedCost || 0;
+      totalMortality += sp.mortality || 0;
+      if (sp.weight) latestWeight = sp.weight;
+      if (sp.doc) doc = sp.doc;
+      logCount++;
+    }
+  }
+
+  let totalRevenue = 0;
+  let totalHarvestWeight = 0;
+  for (const harvest of speciesHarvests) {
+    totalRevenue += harvest.revenue || 0;
+    totalHarvestWeight += harvest.weight || 0;
+  }
+
+  // Get pond data for stocking info
+  const pond = await getById('ponds', pondId);
+  let originalStocked = 0;
+  let stockingWeight = 0;
+  let stockingDate = null;
+  if (pond && pond.species) {
+    const sp = pond.species.find(s => s.speciesId === speciesId);
+    if (sp) {
+      originalStocked = sp.fingerlings || 0;
+      stockingWeight = sp.stockingWeight || 0;
+      stockingDate = sp.stockingDate || null;
+    }
+  }
+
+  const currentAlive = Math.max(0, originalStocked - totalMortality);
+  const survival = originalStocked > 0 ? Math.round((currentAlive / originalStocked) * 100) : null;
+
+  // Calculate FCR
+  const totalWeightGainKg = currentAlive > 0 && latestWeight > stockingWeight ?
+    (currentAlive * (latestWeight - stockingWeight)) / 1000 : 0;
+  const fcr = totalWeightGainKg > 0 ? Math.round((totalFeed / totalWeightGainKg) * 100) / 100 : null;
+
+  return {
+    speciesId,
+    speciesName: getSpeciesName(speciesId),
+    originalStocked,
+    currentAlive,
+    totalFeed,
+    totalFeedCost,
+    totalMortality,
+    totalRevenue,
+    totalHarvestWeight,
+    latestWeight,
+    stockingWeight,
+    survival,
+    fcr,
+    logCount,
+    doc,
+    stockingDate
+  };
+}
+
+// ---- Get Pond Species List ----
+export async function getPondSpecies(pondId) {
+  const pond = await getById('ponds', pondId);
+  if (!pond || !pond.species) return [];
+  return pond.species.map(s => s.speciesId);
+}
+
+// ---- Get Pond Species Data ----
+export async function getPondSpeciesData(pondId) {
+  const pond = await getById('ponds', pondId);
+  if (!pond || !pond.species) return [];
+  const results = [];
+  for (const sp of pond.species) {
+    const totals = await getSpeciesTotals(pondId, sp.speciesId);
+    results.push({
+      ...sp,
+      ...totals
+    });
+  }
+  return results;
+}
+
+// ---- We need getSpeciesName for getSpeciesTotals ----
+// Import from species.js or define a simple fallback
+import { getSpeciesName } from './species.js';
+
+console.log('✅ db.js loaded with all exports including getSpeciesLogFromEntry');
