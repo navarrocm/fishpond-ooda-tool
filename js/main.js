@@ -6,7 +6,7 @@ import {
   openDB, add, getAll, getByIndex, update, remove, clearStore,
   exportAllData, importAllData, getSpeciesTotals, getSpeciesLogFromEntry,
   getById
-} from './db.js';
+} from './database.js';
 import {
   getPondStatus, generateMultiSpeciesRecommendations,
   getPolycultureRecommendation, getPhase
