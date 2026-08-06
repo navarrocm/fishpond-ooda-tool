@@ -2,7 +2,7 @@
 // UI HELPERS - Complete with All Exports
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals, getLatestSampling } from './database.js';
+import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals, getLatestSampling } from './db.js';
 import { 
   getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor, 
   getSpeciesForOperation, getOperationTypes, getOperationTypeLabel, getSpeciesTargets 
@@ -11,7 +11,7 @@ import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './util
 import { renderPrep } from './prep.js';
 
 // ============================================================
-// DECISION ENGINE IMPORTS
+// DECISION ENGINE IMPORTS (FULL VERSION)
 // ============================================================
 
 import {
@@ -19,7 +19,8 @@ import {
   calculateCostBenefit,
   calculateReorderPoint,
   calculatePondHealthScore,
-  calculateHistoricalAverages
+  calculateHistoricalAverages,
+  calculateOpportunityGainLoss
 } from './decide.js';
 
 import {
@@ -78,7 +79,6 @@ export async function renderPondList() {
       }
     }
     
-    // ---- Get biomass, ABW, density from latest sampling ----
     let biomassDisplay = '';
     let abwDisplay = '';
     let densityDisplay = '';
@@ -165,7 +165,6 @@ export async function showPondDetail(pondId) {
     `;
   }
   
-  // Get latest sampling data for display
   let samplingHtml = '';
   if (pond.species && pond.species.length > 0) {
     const firstSpecies = pond.species[0];
@@ -692,7 +691,7 @@ export async function renderHarvestList(pondId) {
   `).join('');
 }
 
-// ---- Render Analysis ----
+// ---- FULL ANALYSIS TAB (WIRED WITH ooda.js) ----
 export async function renderAnalysis(pondId) {
   const container = document.getElementById('analysis-content');
   if (!pondId) {
@@ -720,6 +719,7 @@ export async function renderAnalysis(pondId) {
       </p>
     `;
 
+    // Water Quality
     if (status.latestWaterQuality) {
       const wq = status.latestWaterQuality;
       html += `
@@ -738,6 +738,7 @@ export async function renderAnalysis(pondId) {
       `;
     }
 
+    // Species Grid with OODA Status
     html += `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-bottom:16px;">`;
     for (const sp of status.species) {
       const color = sp.speciesColor || '#666';
@@ -758,14 +759,16 @@ export async function renderAnalysis(pondId) {
             ${sp.statusText}
           </div>
           ${sp.operationType === 'nursery' ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">🐣 Nursery: ${sp.daysInCycle || 0} days</div>` : ''}
+          ${sp.phase ? `<div style="font-size:0.7rem;color:var(--text-muted);margin-top:2px;">Phase: ${sp.phase.label}</div>` : ''}
         </div>
       `;
     }
     html += `</div>`;
 
+    // OODA Recommendations
     html += `
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #3498db;">
-        <h4 style="margin-bottom:8px;">📋 Recommendations</h4>
+        <h4 style="margin-bottom:8px;">📋 OODA Recommendations</h4>
         ${recs.dataWarning ? `<div style="font-size:0.85rem;color:#f39c12;margin-bottom:8px;">⚠️ ${recs.dataWarning}</div>` : ''}
         ${recs.decision.length > 0 ? `
           <div style="font-weight:600;font-size:0.95rem;">${recs.decision.join(' • ')}</div>
@@ -786,6 +789,7 @@ export async function renderAnalysis(pondId) {
       </div>
     `;
 
+    // Polyculture Status
     if (status.species && status.species.length > 1) {
       const speciesIds = status.species.map(s => s.speciesId);
       const compatibility = getPolycultureRecommendation(speciesIds);
@@ -817,7 +821,7 @@ export async function renderAnalysis(pondId) {
   }
 }
 
-// ---- Render Decide ----
+// ---- FULL DECIDE TAB (WIRED WITH decide.js) ----
 export async function renderDecide(pondId) {
   const container = document.getElementById('decide-content');
   if (!container) return;
@@ -848,7 +852,7 @@ export async function renderDecide(pondId) {
       </p>
     `;
 
-    // Historical Averages
+    // ---- 1. Historical Averages ----
     const avgData = calculateHistoricalAverages(pond, logs, harvests);
     if (avgData && logs.length > 0) {
       html += `
@@ -867,7 +871,7 @@ export async function renderDecide(pondId) {
       `;
     }
 
-    // Pond Health Score
+    // ---- 2. Pond Health Score ----
     const weights = { temp: 0.20, ph: 0.20, salinity: 0.10, do: 0.25, ammonia: 0.15, fcr: 0.10 };
     const health = calculatePondHealthScore(logs, weights);
     if (health) {
@@ -899,7 +903,7 @@ export async function renderDecide(pondId) {
       `;
     }
 
-    // Reorder Point
+    // ---- 3. Reorder Point ----
     if (logs.length > 0) {
       let totalDailyFeed = 0;
       let logCount = 0;
@@ -932,7 +936,7 @@ export async function renderDecide(pondId) {
       }
     }
 
-    // Decision Matrix
+    // ---- 4. Decision Matrix (Maximax/Maximin/Minimax) ----
     const currentWeight = status ? status.species.reduce((sum, s) => sum + (s.totalHarvestWeight || 0), 0) : 1000;
     const currentPrice = 140;
     
@@ -1003,7 +1007,36 @@ export async function renderDecide(pondId) {
       `;
     }
 
-    // Cost-Benefit Analysis
+    // ---- 5. Opportunity Gain/Loss (NEW) ----
+    if (decisionMatrix && decisionMatrix.matrix && decisionMatrix.matrix.length >= 2) {
+      const optionA = decisionMatrix.matrix[0];
+      const optionB = decisionMatrix.matrix[decisionMatrix.matrix.length - 1];
+      const opp = calculateOpportunityGainLoss(optionA, optionB);
+      
+      html += `
+        <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #f39c12;">
+          <h4 style="margin-bottom:8px;">📊 Opportunity Analysis</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+            <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center;">
+              <div style="font-size:0.7rem;color:var(--text-muted);">Choosing</div>
+              <div style="font-weight:700;">${opp.betterOption}</div>
+              <div style="font-size:0.9rem;color:#2ecc71;">Gains ${formatCurrency(opp.gain)}</div>
+            </div>
+            <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center;">
+              <div style="font-size:0.7rem;color:var(--text-muted);">Over</div>
+              <div style="font-weight:700;">${opp.worseOption}</div>
+              <div style="font-size:0.9rem;color:#e74c3c;">Loses ${formatCurrency(opp.loss)}</div>
+            </div>
+            <div style="background:var(--bg);padding:12px;border-radius:8px;text-align:center;">
+              <div style="font-size:0.7rem;color:var(--text-muted);">Net</div>
+              <div style="font-weight:700;color:${opp.net > 0 ? '#2ecc71' : '#e74c3c'};">${formatCurrency(opp.net)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // ---- 6. Cost-Benefit Analysis ----
     const currentProfit = status ? status.totalRevenue - status.totalCost : 0;
     const suggestedBenefit = currentProfit > 0 ? Math.round(currentProfit * 0.15) : (isNursery ? 5000 : 12000);
 
@@ -1131,13 +1164,13 @@ export function renderHelp() {
         <p>A: Grow-out is harvest at market size (120+ days). Nursery is fry to fingerlings (30-60 days, faster profit).</p>
       </div>
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #2ecc71;">
-        <h3 style="margin-bottom:8px;color:#2ecc71;">Sampling & Biomass</h3>
-        <p><strong>Q: What is sampling?</strong></p>
-        <p>A: Sampling is when you catch and weigh a sample of fish to estimate average weight, survival, and total biomass.</p>
-        <p style="margin-top:8px;"><strong>Q: How often should I sample?</strong></p>
-        <p>A: Every 15-30 days is recommended. Track ABW, survival estimate, and biomass over time.</p>
-        <p style="margin-top:8px;"><strong>Q: What is ABW?</strong></p>
-        <p>A: Average Body Weight — the average weight of fish in your pond, estimated from sampling.</p>
+        <h3 style="margin-bottom:8px;color:#2ecc71;">OODA Decision Support</h3>
+        <p><strong>Q: What is the Decision Matrix?</strong></p>
+        <p>A: It compares harvest/sale timing options based on your risk preference: Maximax (risk-taker), Maximin (risk-averse), Minimax (minimize regret).</p>
+        <p style="margin-top:8px;"><strong>Q: What is Opportunity Analysis?</strong></p>
+        <p>A: It shows what you gain or lose by choosing one option over another.</p>
+        <p style="margin-top:8px;"><strong>Q: What is the Pond Health Score?</strong></p>
+        <p>A: A weighted average of water quality factors (temp, pH, DO, ammonia, salinity, FCR) giving a single 0-100 score.</p>
       </div>
       <div style="background:var(--card-bg);padding:16px;border-radius:12px;box-shadow:var(--shadow);margin-bottom:16px;border-left:4px solid #f39c12;">
         <h3 style="margin-bottom:8px;color:#f39c12;">Data Safety</h3>
