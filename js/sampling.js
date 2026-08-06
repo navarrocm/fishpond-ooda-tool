@@ -2,7 +2,7 @@
 // SAMPLING TAB - ABW, Survival, Biomass Tracking
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, getById, getLatestSampling, getSamplingHistory } from './db.js';
+import { getAll, getByIndex, add, update, remove, getById, getLatestSampling, getSamplingHistory } from './database.js';
 import { getSpecies, getSpeciesName, getSpeciesTargets } from './species.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
 
