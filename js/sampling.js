@@ -5,7 +5,6 @@
 import { getAll, getByIndex, add, update, remove, getById, getLatestSampling, getSamplingHistory } from './db.js';
 import { getSpecies, getSpeciesName, getSpeciesTargets } from './species.js';
 import { escapeHtml, formatCurrency, formatNumber, validateNumber } from './utils.js';
-import { getPondStatus } from './ooda.js';
 
 // ---- Render Sampling Tab ----
 export async function renderSampling(pondId) {
@@ -119,166 +118,179 @@ export function showAddSamplingModal(pondId) {
   const body = document.getElementById('modal-body');
   modal.style.display = 'flex';
 
-  // Get species for this pond
   const speciesSelect = document.getElementById('sampling-species-select');
   const selectedSpecies = speciesSelect ? speciesSelect.value : '';
   
-  const pond = getById('ponds', pondId);
-  // We'll handle species selection in the form
-
-  body.innerHTML = `
-    <h2>Add Sampling Event</h2>
-    <form id="add-sampling-form">
-      <input type="hidden" id="sampling-pond-id" value="${pondId}">
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label>Date *</label>
-          <input type="date" id="sampling-date" value="${new Date().toISOString().split('T')[0]}" required>
+  // Get pond data
+  getById('ponds', pondId).then(pond => {
+    body.innerHTML = `
+      <h2>Add Sampling Event</h2>
+      <form id="add-sampling-form">
+        <input type="hidden" id="sampling-pond-id" value="${pondId}">
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" id="sampling-date" value="${new Date().toISOString().split('T')[0]}" required>
+          </div>
+          <div class="form-group">
+            <label>DOC (Day of Culture)</label>
+            <input type="number" id="sampling-doc" min="0" step="1" placeholder="e.g., 45">
+            <span class="hint">Days since stocking</span>
+          </div>
         </div>
+        
         <div class="form-group">
-          <label>DOC (Day of Culture)</label>
-          <input type="number" id="sampling-doc" min="0" step="1" placeholder="e.g., 45">
-          <span class="hint">Days since stocking</span>
-        </div>
-      </div>
-      
-      <div class="form-group">
-        <label>Species *</label>
-        <select id="sampling-species" required>
-          <option value="">Select species</option>
-          ${pond.species ? pond.species.map(sp => {
-            const s = getSpecies(sp.speciesId);
-            return `<option value="${sp.speciesId}" ${sp.speciesId === selectedSpecies ? 'selected' : ''}>${s ? s.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</option>`;
-          }).join('') : ''}
-        </select>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label>Sample Size (number of fish sampled)</label>
-          <input type="number" id="sampling-sample-size" min="1" step="1" placeholder="e.g., 30">
-          <span class="hint">How many fish were weighed</span>
-        </div>
-        <div class="form-group">
-          <label>Average Body Weight (g) *</label>
-          <input type="number" id="sampling-avg-weight" step="0.1" required placeholder="e.g., 150">
-          <span class="hint">ABW from sampling</span>
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label>Estimated Survival (%)</label>
-          <input type="number" id="sampling-survival" min="0" max="100" step="1" placeholder="e.g., 85">
-          <span class="hint">Your educated guess based on feeding, size, DOC</span>
-        </div>
-        <div class="form-group">
-          <label>Biomass (kg)</label>
-          <input type="number" id="sampling-biomass" step="0.1" placeholder="Auto-calculated">
-          <span class="hint">Auto-calculated from ABW × survival × density</span>
-        </div>
-      </div>
-      
-      <div class="form-row">
-        <div class="form-group">
-          <label>Feeding Response</label>
-          <select id="sampling-feeding-response">
-            <option value="">Select</option>
-            <option value="Excellent">Excellent - Fish eating aggressively</option>
-            <option value="Good">Good - Normal feeding</option>
-            <option value="Fair">Fair - Some reduction</option>
-            <option value="Poor">Poor - Not eating well</option>
+          <label>Species *</label>
+          <select id="sampling-species" required>
+            <option value="">Select species</option>
+            ${pond.species ? pond.species.map(sp => {
+              const s = getSpecies(sp.speciesId);
+              return `<option value="${sp.speciesId}" ${sp.speciesId === selectedSpecies ? 'selected' : ''}>${s ? s.icon : '🐟'} ${getSpeciesName(sp.speciesId)}</option>`;
+            }).join('') : ''}
           </select>
         </div>
-        <div class="form-group">
-          <label>Density (pieces/ha)</label>
-          <input type="number" id="sampling-density" step="1" placeholder="Auto-calculated">
-          <span class="hint">Current stocking density</span>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Sample Size (number of fish sampled)</label>
+            <input type="number" id="sampling-sample-size" min="1" step="1" placeholder="e.g., 30">
+            <span class="hint">How many fish were weighed</span>
+          </div>
+          <div class="form-group">
+            <label>Average Body Weight (g) *</label>
+            <input type="number" id="sampling-avg-weight" step="0.1" required placeholder="e.g., 150">
+            <span class="hint">ABW from sampling</span>
+          </div>
         </div>
-      </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Estimated Survival (%)</label>
+            <input type="number" id="sampling-survival" min="0" max="100" step="1" placeholder="e.g., 85">
+            <span class="hint">Your educated guess based on feeding, size, DOC</span>
+          </div>
+          <div class="form-group">
+            <label>Biomass (kg)</label>
+            <input type="number" id="sampling-biomass" step="0.1" placeholder="Auto-calculated">
+            <span class="hint">Auto-calculated from ABW × survival × density</span>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label>Feeding Response</label>
+            <select id="sampling-feeding-response">
+              <option value="">Select</option>
+              <option value="Excellent">Excellent - Fish eating aggressively</option>
+              <option value="Good">Good - Normal feeding</option>
+              <option value="Fair">Fair - Some reduction</option>
+              <option value="Poor">Poor - Not eating well</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Density (pieces/ha)</label>
+            <input type="number" id="sampling-density" step="1" placeholder="Auto-calculated">
+            <span class="hint">Current stocking density</span>
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label>Notes</label>
+          <input type="text" id="sampling-notes" placeholder="Observations, health, behavior...">
+        </div>
+        
+        <button type="submit" class="primary-btn" style="width:100%;margin-top:10px;">Save Sampling Event</button>
+      </form>
+    `;
+
+    // ---- Auto-calculate biomass ----
+    document.getElementById('sampling-avg-weight')?.addEventListener('input', autoCalcBiomass);
+    document.getElementById('sampling-survival')?.addEventListener('input', autoCalcBiomass);
+    document.getElementById('sampling-density')?.addEventListener('input', autoCalcBiomass);
+
+    function autoCalcBiomass() {
+      const avgWeight = validateNumber(document.getElementById('sampling-avg-weight').value, 0);
+      const survival = validateNumber(document.getElementById('sampling-survival').value, 0) / 100;
+      const density = validateNumber(document.getElementById('sampling-density').value, 0);
       
-      <div class="form-group">
-        <label>Notes</label>
-        <input type="text" id="sampling-notes" placeholder="Observations, health, behavior...">
-      </div>
-      
-      <button type="submit" class="primary-btn" style="width:100%;margin-top:10px;">Save Sampling Event</button>
-    </form>
-  `;
-
-  // ---- Auto-calculate biomass ----
-  document.getElementById('sampling-avg-weight')?.addEventListener('input', autoCalcBiomass);
-  document.getElementById('sampling-survival')?.addEventListener('input', autoCalcBiomass);
-  document.getElementById('sampling-density')?.addEventListener('input', autoCalcBiomass);
-
-  function autoCalcBiomass() {
-    const avgWeight = validateNumber(document.getElementById('sampling-avg-weight').value, 0);
-    const survival = validateNumber(document.getElementById('sampling-survival').value, 0) / 100;
-    const density = validateNumber(document.getElementById('sampling-density').value, 0);
-    
-    if (avgWeight > 0 && survival > 0 && density > 0) {
-      const biomass = (avgWeight * survival * density) / 1000;
-      document.getElementById('sampling-biomass').value = Math.round(biomass * 10) / 10;
-    }
-  }
-
-  // ---- Submit handler ----
-  document.getElementById('add-sampling-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const pondId = document.getElementById('sampling-pond-id').value;
-    const date = document.getElementById('sampling-date').value;
-    const doc = validateNumber(document.getElementById('sampling-doc').value);
-    const speciesId = document.getElementById('sampling-species').value;
-    const sampleSize = validateNumber(document.getElementById('sampling-sample-size').value);
-    const avgWeight = validateNumber(document.getElementById('sampling-avg-weight').value);
-    const estimatedSurvival = validateNumber(document.getElementById('sampling-survival').value);
-    let biomass = validateNumber(document.getElementById('sampling-biomass').value);
-    const feedingResponse = document.getElementById('sampling-feeding-response').value;
-    const density = validateNumber(document.getElementById('sampling-density').value);
-    const notes = document.getElementById('sampling-notes').value.trim() || '';
-    
-    if (!date || !speciesId || !avgWeight) {
-      alert('Please fill in Date, Species, and Average Body Weight.');
-      return;
-    }
-    
-    // Auto-calculate biomass if not entered
-    if (!biomass || biomass <= 0) {
-      const surv = estimatedSurvival || 0;
-      const dens = density || 0;
-      if (avgWeight > 0 && surv > 0 && dens > 0) {
-        biomass = (avgWeight * (surv / 100) * dens) / 1000;
+      if (avgWeight > 0 && survival > 0 && density > 0) {
+        const biomass = (avgWeight * survival * density) / 1000;
+        document.getElementById('sampling-biomass').value = Math.round(biomass * 10) / 10;
       }
     }
-    
-    const samplingData = {
-      pondId: pondId,
-      speciesId: speciesId,
-      date: date,
-      doc: doc || null,
-      sampleSize: sampleSize || null,
-      avgWeight: avgWeight,
-      estimatedSurvival: estimatedSurvival || null,
-      biomass: biomass || null,
-      feedingResponse: feedingResponse || null,
-      density: density || null,
-      notes: notes,
-      createdAt: new Date().toISOString()
-    };
-    
-    await add('samplingEvents', samplingData);
-    modal.style.display = 'none';
-    await renderSampling(pondId);
-    showMessage('log-message', 'Sampling event saved!', 'success');
+
+    // ---- Submit handler ----
+    document.getElementById('add-sampling-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const pondId = document.getElementById('sampling-pond-id').value;
+      const date = document.getElementById('sampling-date').value;
+      const doc = validateNumber(document.getElementById('sampling-doc').value);
+      const speciesId = document.getElementById('sampling-species').value;
+      const sampleSize = validateNumber(document.getElementById('sampling-sample-size').value);
+      const avgWeight = validateNumber(document.getElementById('sampling-avg-weight').value);
+      const estimatedSurvival = validateNumber(document.getElementById('sampling-survival').value);
+      let biomass = validateNumber(document.getElementById('sampling-biomass').value);
+      const feedingResponse = document.getElementById('sampling-feeding-response').value;
+      const density = validateNumber(document.getElementById('sampling-density').value);
+      const notes = document.getElementById('sampling-notes').value.trim() || '';
+      
+      if (!date || !speciesId || !avgWeight) {
+        alert('Please fill in Date, Species, and Average Body Weight.');
+        return;
+      }
+      
+      // Auto-calculate biomass if not entered
+      if (!biomass || biomass <= 0) {
+        const surv = estimatedSurvival || 0;
+        const dens = density || 0;
+        if (avgWeight > 0 && surv > 0 && dens > 0) {
+          biomass = (avgWeight * (surv / 100) * dens) / 1000;
+        }
+      }
+      
+      const samplingData = {
+        pondId: pondId,
+        speciesId: speciesId,
+        date: date,
+        doc: doc || null,
+        sampleSize: sampleSize || null,
+        avgWeight: avgWeight,
+        estimatedSurvival: estimatedSurvival || null,
+        biomass: biomass || null,
+        feedingResponse: feedingResponse || null,
+        density: density || null,
+        notes: notes,
+        createdAt: new Date().toISOString()
+      };
+      
+      await add('samplingEvents', samplingData);
+      modal.style.display = 'none';
+      await renderSampling(pondId);
+      showMessage('log-message', 'Sampling event saved!', 'success');
+    });
   });
 }
 
 // ---- Edit Sampling ----
 export async function editSampling(samplingId) {
-  // Simplified: show alert for now
-  alert('Edit sampling event: Click to modify. Full edit form coming soon.');
+  const sample = await getById('samplingEvents', samplingId);
+  if (!sample) {
+    showMessage('log-message', 'Sampling event not found.', 'error');
+    return;
+  }
+  
+  // Simplified: show current data and prompt for update
+  if (confirm(`Edit sampling event from ${sample.date}? (ABW: ${sample.avgWeight}g)\n\nDelete and re-add to update.`)) {
+    await remove('samplingEvents', samplingId);
+    const pondId = document.getElementById('sampling-pond')?.value;
+    if (pondId) {
+      await renderSampling(pondId);
+      showAddSamplingModal(pondId);
+    }
+    showMessage('log-message', 'Sampling removed. Please re-add with updated info.', 'info');
+  }
 }
 
 // ---- Delete Sampling ----
