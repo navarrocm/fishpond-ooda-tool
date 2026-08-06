@@ -2,7 +2,7 @@
 // UI HELPERS - Complete with All Exports
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals, getLatestSampling } from './db.js';
+import { getAll, getByIndex, add, update, remove, getById, exportAllData, getSpeciesTotals, getLatestSampling } from './database.js';
 import { 
   getSpecies, getSpeciesList, getSpeciesName, getSpeciesIcon, getSpeciesColor, 
   getSpeciesForOperation, getOperationTypes, getOperationTypeLabel, getSpeciesTargets 
