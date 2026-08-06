@@ -388,4 +388,279 @@ function setupEventListeners() {
     showMessage('harvest-message', 'Harvest record saved!', 'success');
     document.getElementById('harvest-form').reset();
     document.getElementById('harvest-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('
+    document.getElementById('harvest-revenue').value = '';
+    await renderHarvestList(pondId);
+    await renderPondList();
+    await updateSelectors();
+  });
+
+  // --- HARVEST AUTO-CALC ---
+  document.getElementById('harvest-weight')?.addEventListener('input', calcRevenue);
+  document.getElementById('harvest-price')?.addEventListener('input', calcRevenue);
+  function calcRevenue() {
+    const weight = validateNumber(document.getElementById('harvest-weight').value);
+    const price = validateNumber(document.getElementById('harvest-price').value);
+    if (weight !== null && price !== null && weight > 0 && price > 0) {
+      document.getElementById('harvest-revenue').value = Math.round(weight * price);
+    }
+  }
+
+  // --- HARVEST POND SELECTOR ---
+  document.getElementById('harvest-pond')?.addEventListener('change', async (e) => {
+    await populateHarvestSpecies(e.target.value);
+    await renderHarvestList(e.target.value);
+  });
+
+  // --- LOG POND SELECTOR ---
+  document.getElementById('log-pond')?.addEventListener('change', async (e) => {
+    const pondId = e.target.value;
+    if (pondId) {
+      await populateSpeciesLogs(pondId);
+      document.getElementById('add-species-log-btn').style.display = 'block';
+    } else {
+      document.getElementById('species-log-entries').innerHTML = '';
+      document.getElementById('add-species-log-btn').style.display = 'none';
+    }
+  });
+
+  // --- TIDE FORM ---
+  document.getElementById('tide-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const tide = {
+      date: document.getElementById('tide-date').value,
+      highLevel: validateNumber(document.getElementById('tide-high').value, 0),
+      highTime: document.getElementById('tide-high-time').value || '',
+      lowLevel: validateNumber(document.getElementById('tide-low').value, 0),
+      lowTime: document.getElementById('tide-low-time').value || '',
+      createdAt: new Date().toISOString()
+    };
+    await add('tideLogs', tide);
+    showMessage('tide-message', 'Tide data saved!', 'success');
+  });
+
+  // --- ANALYSIS POND SELECTOR ---
+  document.getElementById('analysis-pond')?.addEventListener('change', async (e) => {
+    const pondId = e.target.value;
+    await renderAnalysis(pondId);
+  });
+
+  // --- DECIDE POND SELECTOR ---
+  document.getElementById('decide-pond')?.addEventListener('change', async (e) => {
+    const pondId = e.target.value;
+    await renderDecide(pondId);
+  });
+
+  // --- PREP POND SELECTOR ---
+  document.getElementById('prep-pond')?.addEventListener('change', async (e) => {
+    await renderPrep(e.target.value);
+  });
+
+  // --- SAMPLING POND SELECTOR ---
+  document.getElementById('sampling-pond')?.addEventListener('change', async (e) => {
+    const pondId = e.target.value;
+    await renderSampling(pondId);
+  });
+
+  // --- LOAD SAMPLE DATA ---
+  document.getElementById('load-sample-data')?.addEventListener('click', async () => {
+    if (confirm('Load sample data? This will add a demo pond with multiple species.')) {
+      await loadSampleData();
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', 'Sample data loaded! Check the Dashboard.', 'success');
+    }
+  });
+
+  // --- EXPORT CSV ---
+  document.getElementById('export-csv')?.addEventListener('click', async () => {
+    const logs = await getAll('dailyLogs');
+    if (logs.length === 0) {
+      showMessage('log-message', 'No data to export.', 'error');
+      return;
+    }
+    exportToCSV(logs, 'fishpond-logs');
+  });
+
+  // --- PRINT REPORT ---
+  document.getElementById('print-report')?.addEventListener('click', printReport);
+
+  // --- EXPORT DATA ---
+  document.getElementById('export-data')?.addEventListener('click', async () => {
+    const data = await exportAllData();
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `fishpond-data-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    localStorage.setItem('lastExportDate', new Date().toISOString());
+    showMessage('log-message', 'Data exported!', 'success');
+  });
+
+  // --- IMPORT DATA ---
+  document.getElementById('import-data')?.addEventListener('click', () => {
+    document.getElementById('import-file').click();
+  });
+  document.getElementById('import-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await importAllData(data);
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', 'Data imported successfully!', 'success');
+    } catch (err) {
+      showMessage('log-message', 'Invalid file format.', 'error');
+    }
+    e.target.value = '';
+  });
+
+  // --- CLEAR DATA ---
+  document.getElementById('clear-data')?.addEventListener('click', async () => {
+    if (confirm('Delete ALL data? This cannot be undone.')) {
+      await clearStore('ponds');
+      await clearStore('dailyLogs');
+      await clearStore('samplingEvents');
+      await clearStore('harvests');
+      await clearStore('tideLogs');
+      await clearStore('prepLogs');
+      await renderPondList();
+      await updateSelectors();
+      showMessage('log-message', 'All data cleared.', 'info');
+    }
+  });
+}
+
+// ---- Species Log Helper Functions ----
+async function populateSpeciesLogs(pondId) {
+  const pond = await getById('ponds', pondId);
+  const container = document.getElementById('species-log-entries');
+  container.innerHTML = '';
+
+  if (pond && pond.species && pond.species.length > 0) {
+    let index = 0;
+    for (const sp of pond.species) {
+      container.insertAdjacentHTML('beforeend', createSpeciesLogEntry(sp.speciesId, index));
+      index++;
+    }
+    document.getElementById('add-species-log-btn').style.display = 'block';
+  } else {
+    container.insertAdjacentHTML('beforeend', createSpeciesLogEntry('', 0));
+    document.getElementById('add-species-log-btn').style.display = 'block';
+  }
+  updateSpeciesLogColors();
+}
+
+async function populateHarvestSpecies(pondId) {
+  const select = document.getElementById('harvest-species');
+  select.innerHTML = '<option value="">Select species</option>';
+  if (!pondId) return;
+
+  const pond = await getById('ponds', pondId);
+  if (pond && pond.species) {
+    for (const sp of pond.species) {
+      const species = getSpecies(sp.speciesId);
+      if (species) {
+        select.innerHTML += `<option value="${species.id}">${species.icon} ${species.name}</option>`;
+      }
+    }
+  }
+}
+
+function updateSpeciesLogColors() {
+  document.querySelectorAll('.species-log-entry').forEach(entry => {
+    const select = entry.querySelector('.species-select');
+    const speciesId = select.value;
+    const color = speciesId ? getSpeciesColor(speciesId) : '#666';
+    entry.style.borderLeftColor = color;
+  });
+}
+
+function updateSpeciesLogIndices() {
+  document.querySelectorAll('.species-log-entry').forEach((entry, index) => {
+    entry.dataset.index = index;
+    entry.querySelector('.species-select').dataset.index = index;
+    entry.querySelector('.species-doc').dataset.index = index;
+    entry.querySelector('.species-weight').dataset.index = index;
+    entry.querySelector('.species-mortality').dataset.index = index;
+    entry.querySelector('.species-feed-type').dataset.index = index;
+    entry.querySelector('.species-feed-amount').dataset.index = index;
+    entry.querySelector('.species-feed-cost').dataset.index = index;
+    entry.querySelector('.species-notes').dataset.index = index;
+    const removeBtn = entry.querySelector('.remove-species-log');
+    if (removeBtn) removeBtn.dataset.index = index;
+    entry.querySelector('strong').textContent = `Species #${index + 1}`;
+  });
+}
+
+// ---- Sample Data ----
+async function loadSampleData() {
+  const ponds = await getAll('ponds');
+  if (ponds.length > 0) return;
+
+  const samplePond = {
+    id: 'sample-1',
+    name: 'Sample West Pond',
+    location: 'Iloilo, Western Visayas',
+    area: 0.5,
+    operationType: 'growout',
+    species: [
+      {
+        speciesId: 'bangus',
+        stockingDate: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        fingerlings: 3000,
+        stockingWeight: 5
+      },
+      {
+        speciesId: 'tilapiaSaltTolerant',
+        stockingDate: new Date(Date.now() - 50 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        fingerlings: 2000,
+        stockingWeight: 3
+      }
+    ],
+    harvested: false,
+    createdAt: new Date().toISOString()
+  };
+  await add('ponds', samplePond);
+
+  // Sample sampling events
+  const samplingDates = [];
+  for (let i = 0; i < 60; i += 15) {
+    const date = new Date(Date.now() - (60 - i) * 24 * 60 * 60 * 1000);
+    samplingDates.push(date);
+  }
+
+  for (const sp of samplePond.species) {
+    for (let i = 0; i < samplingDates.length; i++) {
+      const date = samplingDates[i];
+      const doc = i * 15 + 15;
+      const avgWeight = 5 + (doc / 60) * 350 + Math.random() * 20;
+      const survival = 85 - (doc / 60) * 5 + Math.random() * 3;
+      const density = sp.fingerlings / samplePond.area;
+      const biomass = (avgWeight * (survival / 100) * density) / 1000;
+
+      await add('samplingEvents', {
+        pondId: samplePond.id,
+        speciesId: sp.speciesId,
+        date: date.toISOString().split('T')[0],
+        doc: doc,
+        sampleSize: 30 + Math.floor(Math.random() * 20),
+        avgWeight: Math.round(avgWeight * 10) / 10,
+        estimatedSurvival: Math.round(survival),
+        biomass: Math.round(biomass * 10) / 10,
+        feedingResponse: ['Excellent', 'Good', 'Good', 'Good', 'Fair'][i % 5],
+        density: density,
+        notes: i === 2 ? 'Noticed some mortality, reduced feeding' : '',
+        createdAt: new Date().toISOString()
+      });
+    }
+  }
+
+  console.log('✅ Multi-species sample data with sampling loaded!');
+}
+
+// ---- START ----
+document.addEventListener('DOMContentLoaded', init);
