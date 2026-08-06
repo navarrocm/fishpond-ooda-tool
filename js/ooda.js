@@ -2,7 +2,7 @@
 // OODA ENGINE - Multi-Species v2 (Operation Type Aware)
 // ============================================================
 
-import { getById, getByIndex, getSpeciesTotals, getSpeciesLogFromEntry } from './db.js';
+import { getById, getByIndex, getSpeciesTotals, getSpeciesLogFromEntry } from './database.js';
 import { getSpecies, getSpeciesTargets, getOperationTypeLabel } from './species.js';
 import { validateNumber } from './utils.js';
 
