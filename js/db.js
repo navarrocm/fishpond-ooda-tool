@@ -1,5 +1,5 @@
 // ============================================================
-// DATABASE LAYER - IndexedDB v6 (Sampling Events)
+// DATABASE LAYER - IndexedDB v7 (Sampling Events)
 // ============================================================
 
 import { generateId } from './utils.js';
@@ -29,7 +29,7 @@ export function openDB() {
         store.createIndex('harvested', 'harvested');
       }
 
-      // --- Daily Logs Store (Updated with feed rate) ---
+      // --- Daily Logs Store ---
       if (!db.objectStoreNames.contains('dailyLogs')) {
         const store = db.createObjectStore('dailyLogs', { keyPath: 'id' });
         store.createIndex('pondId', 'pondId');
