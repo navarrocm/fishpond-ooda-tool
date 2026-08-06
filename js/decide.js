@@ -2,7 +2,7 @@
 // DECISION SUPPORT ENGINE - MBA Concepts
 // ============================================================
 
-import { getById, getSpeciesTotals, getByIndex } from './db.js';
+import { getById, getSpeciesTotals, getByIndex } from './database.js';
 import { getSpecies, getSpeciesName, getSpeciesTargets, getOperationTypeLabel } from './species.js';
 import { validateNumber, formatCurrency, formatNumber } from './utils.js';
 
