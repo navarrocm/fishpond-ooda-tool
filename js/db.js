@@ -3,6 +3,7 @@
 // ============================================================
 
 import { generateId } from './utils.js';
+import { getSpeciesName } from './species.js';
 
 const DB_NAME = 'FishpondOODA';
 const DB_VERSION = 7;
@@ -209,36 +210,14 @@ export async function importAllData(data) {
   for (const prep of data.prepLogs || []) await add('prepLogs', prep);
 }
 
-// ---- Get Species Log from Entry (FIXED - This was missing) ----
+// ============================================================
+// SPECIES LOG HELPERS (EXPORTED)
+// ============================================================
+
+// ---- Get Species Log from Entry ----
 export function getSpeciesLogFromEntry(log, speciesId) {
   if (!log || !log.speciesLogs) return null;
   return log.speciesLogs.find(s => s.speciesId === speciesId) || null;
-}
-
-// ---- Get Latest Sampling Event ----
-export async function getLatestSampling(pondId, speciesId) {
-  const all = await getByIndex('samplingEvents', 'pondId_speciesId', [pondId, speciesId]);
-  if (all.length === 0) return null;
-  return all.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
-}
-
-// ---- Get All Sampling Events for Pond ----
-export async function getSamplingHistory(pondId, speciesId) {
-  const all = await getByIndex('samplingEvents', 'pondId_speciesId', [pondId, speciesId]);
-  return all.sort((a, b) => new Date(a.date) - new Date(b.date));
-}
-
-// ---- Calculate Biomass from Latest Sampling ----
-export async function getCurrentBiomass(pondId, speciesId) {
-  const latest = await getLatestSampling(pondId, speciesId);
-  if (!latest) return null;
-  return {
-    biomass: latest.biomass || 0,
-    avgWeight: latest.avgWeight || 0,
-    estimatedSurvival: latest.estimatedSurvival || 0,
-    sampleDate: latest.date,
-    doc: latest.doc
-  };
 }
 
 // ---- Get Species Totals ----
@@ -315,6 +294,36 @@ export async function getSpeciesTotals(pondId, speciesId) {
   };
 }
 
+// ============================================================
+// SAMPLING HELPERS (EXPORTED)
+// ============================================================
+
+// ---- Get Latest Sampling Event ----
+export async function getLatestSampling(pondId, speciesId) {
+  const all = await getByIndex('samplingEvents', 'pondId_speciesId', [pondId, speciesId]);
+  if (all.length === 0) return null;
+  return all.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+}
+
+// ---- Get All Sampling Events for Pond ----
+export async function getSamplingHistory(pondId, speciesId) {
+  const all = await getByIndex('samplingEvents', 'pondId_speciesId', [pondId, speciesId]);
+  return all.sort((a, b) => new Date(a.date) - new Date(b.date));
+}
+
+// ---- Calculate Biomass from Latest Sampling ----
+export async function getCurrentBiomass(pondId, speciesId) {
+  const latest = await getLatestSampling(pondId, speciesId);
+  if (!latest) return null;
+  return {
+    biomass: latest.biomass || 0,
+    avgWeight: latest.avgWeight || 0,
+    estimatedSurvival: latest.estimatedSurvival || 0,
+    sampleDate: latest.date,
+    doc: latest.doc
+  };
+}
+
 // ---- Get Pond Species List ----
 export async function getPondSpecies(pondId) {
   const pond = await getById('ponds', pondId);
@@ -337,8 +346,4 @@ export async function getPondSpeciesData(pondId) {
   return results;
 }
 
-// ---- We need getSpeciesName for getSpeciesTotals ----
-// Import from species.js or define a simple fallback
-import { getSpeciesName } from './species.js';
-
-console.log('✅ db.js loaded with all exports including getSpeciesLogFromEntry');
+console.log('✅ db.js loaded with all exports');
