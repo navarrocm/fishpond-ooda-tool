@@ -2,7 +2,7 @@
 // PREP TAB - Pond Preparation Tracking
 // ============================================================
 
-import { getAll, getByIndex, add, update, remove, getById } from './db.js';  // <-- ADDED getById
+import { getAll, getByIndex, add, update, remove, getById } from './database.js';  // <-- ADDED getById
 import { escapeHtml, formatNumber, validateNumber } from './utils.js';
 import { getSpecies, getSpeciesList, getSpeciesName } from './species.js';
 
