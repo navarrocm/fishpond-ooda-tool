@@ -5,20 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Fishpond OODA Tool</title>
   
-  <!-- ===== FAVICON ===== -->
-  <!-- Explicitly tell the browser where the favicon is -->
+  <!-- FAVICON -->
   <link rel="icon" href="/fishpond-ooda-tool/favicon.ico" type="image/x-icon">
   <link rel="shortcut icon" href="/fishpond-ooda-tool/favicon.ico" type="image/x-icon">
   
-  <!-- ===== PWA MANIFEST ===== -->
+  <!-- PWA MANIFEST -->
   <link rel="manifest" href="/fishpond-ooda-tool/manifest.json">
   <meta name="theme-color" content="#1a1a2e">
   <meta name="description" content="Smart decision support for fishpond operators">
   
-  <!-- ===== APPLE TOUCH ICON ===== -->
+  <!-- APPLE TOUCH ICON -->
   <link rel="apple-touch-icon" href="/fishpond-ooda-tool/icons/icon-192.png">
   
-  <!-- ===== STYLES ===== -->
+  <!-- STYLES -->
   <link rel="stylesheet" href="/fishpond-ooda-tool/css/style.css">
 </head>
 <body>
@@ -33,6 +32,7 @@
       <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
       <button class="tab-btn" data-tab="prep">Prep</button>
       <button class="tab-btn" data-tab="log">Log Entry</button>
+      <button class="tab-btn" data-tab="sampling">Sampling</button>
       <button class="tab-btn" data-tab="harvest">Harvest</button>
       <button class="tab-btn" data-tab="tide">Tide</button>
       <button class="tab-btn" data-tab="analysis">Analysis</button>
@@ -66,7 +66,7 @@
         </div>
       </section>
 
-      <!-- ===== LOG ENTRY ===== -->
+      <!-- ===== LOG ENTRY (Updated with Feed Rate) ===== -->
       <section id="log" class="tab-panel">
         <div class="panel-header">
           <h2>Daily Log Entry</h2>
@@ -84,6 +84,7 @@
             </div>
           </div>
 
+          <!-- Water Quality -->
           <div style="background:var(--bg);padding:12px;border-radius:8px;margin-bottom:12px;">
             <h4 style="margin-bottom:8px;color:var(--primary-light);">🌊 Water Parameters (Shared)</h4>
             <div class="form-row">
@@ -137,12 +138,35 @@
             </div>
           </div>
 
+          <!-- Species Data -->
           <div id="species-logs-container">
             <h4 style="margin-bottom:8px;color:var(--primary-light);">🐟 Species Data</h4>
             <div id="species-log-entries"></div>
             <button type="button" id="add-species-log-btn" class="secondary-btn" style="margin-top:8px;width:100%;">+ Add Species Log</button>
           </div>
 
+          <!-- Feed Rate (NEW) -->
+          <div style="background:var(--bg);padding:12px;border-radius:8px;margin-top:12px;">
+            <h4 style="margin-bottom:8px;color:var(--primary-light);">🍽️ Feeding Details</h4>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="log-feedings-per-day">Feedings Per Day</label>
+                <input type="number" id="log-feedings-per-day" min="0" max="10" step="1" value="2" placeholder="e.g., 3">
+                <span class="hint">Number of times you fed today</span>
+              </div>
+              <div class="form-group">
+                <label for="log-feeding-times">Feeding Times</label>
+                <input type="text" id="log-feeding-times" placeholder="e.g., 06:00, 12:00, 18:00">
+                <span class="hint">When you fed (comma separated)</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="log-feeding-notes">Feeding Notes</label>
+              <input type="text" id="log-feeding-notes" placeholder="e.g., Fish ate aggressively, reduced feed">
+            </div>
+          </div>
+
+          <!-- General Notes -->
           <div class="form-group" style="margin-top:12px;">
             <label for="log-notes">General Notes</label>
             <input type="text" id="log-notes" placeholder="Observations...">
@@ -153,7 +177,23 @@
         <div id="log-message" class="message" style="display:none;"></div>
       </section>
 
-      <!-- ===== HARVEST ENTRY ===== -->
+      <!-- ===== SAMPLING (NEW TAB) ===== -->
+      <section id="sampling" class="tab-panel">
+        <div class="panel-header">
+          <h2>Sampling Events</h2>
+          <span style="font-size:0.85rem;color:var(--text-muted);">Track ABW, survival, and biomass over time</span>
+        </div>
+        <div style="margin-bottom:16px;">
+          <select id="sampling-pond" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;background:var(--card-bg);color:var(--text);">
+            <option value="">Select a pond</option>
+          </select>
+        </div>
+        <div id="sampling-content">
+          <p style="color:var(--text-light);text-align:center;padding:40px 0;">Select a pond to view and add sampling events.</p>
+        </div>
+      </section>
+
+      <!-- ===== HARVEST ===== -->
       <section id="harvest" class="tab-panel">
         <div class="panel-header">
           <h2>Harvest Entry</h2>
@@ -295,7 +335,7 @@
         <div class="settings-section">
           <h3>Sample Data</h3>
           <button id="load-sample-data" class="primary-btn">Load Sample Data</button>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Creates a demo pond with multiple species.</p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">Creates a demo pond with multiple species and sampling data.</p>
         </div>
         <div class="settings-section">
           <h3>Export</h3>
@@ -318,10 +358,9 @@
         </div>
         <div class="settings-section">
           <h3>About</h3>
-          <p><strong>Fishpond OODA Tool v5.0</strong></p>
-          <p>Multi-species polyculture support.</p>
+          <p><strong>Fishpond OODA Tool v6.0</strong></p>
+          <p>Multi-species polyculture with sampling and biomass tracking.</p>
           <p>Data stored locally in your browser.</p>
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px;">💡 <strong>Data safety:</strong> Regularly export your data.</p>
         </div>
       </section>
     </main>
